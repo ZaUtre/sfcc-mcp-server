@@ -1,1 +1,0 @@
-# sfcc-mcp-server
