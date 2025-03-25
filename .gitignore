@@ -34,3 +34,4 @@ coverage/
 # OS-specific
 .DS_Store
 Thumbs.db
+build/index.js

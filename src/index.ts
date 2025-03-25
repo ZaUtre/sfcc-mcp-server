@@ -1,223 +1,218 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
+import { config } from "dotenv";
+import { Product, ClientConfig, Customer, slasHelpers } from "commerce-sdk";
 
-const NWS_API_BASE = "https://api.weather.gov";
-const USER_AGENT = "weather-app/1.0";
+// Load environment variables
+config();
+
+const SFCC_CLIENT_ID = process.env.SFCC_CLIENT_ID || "";
+const SFCC_CLIENT_SECRET = process.env.SFCC_CLIENT_SECRET || "";
+const SFCC_SITE_ID = process.env.SFCC_SITE_ID || "RefArch";
+const SFCC_ORGANIZATION_ID = process.env.SFCC_ORGANIZATION_ID || "";
+const SFCC_SHORT_CODE = process.env.SFCC_SHORT_CODE || "";
+const USER_AGENT = "sfcc-mcp-server/1.0";
 
 // Create server instance
 const server = new McpServer({
-  name: "weather",
+  name: "sfcc-services",
   version: "1.0.0",
 });
 
-// Helper function for making NWS API requests
-async function makeNWSRequest<T>(url: string): Promise<T | null> {
-    const headers = {
+// Create basic client config
+const getBaseClientConfig = (): ClientConfig => {
+  return {
+    headers: {
       "User-Agent": USER_AGENT,
-      Accept: "application/geo+json",
-    };
-  
-    try {
-      const response = await fetch(url, { headers });
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      return (await response.json()) as T;
-    } catch (error) {
-      console.error("Error making NWS request:", error);
-      return null;
-    }
-  }
-  
-  interface AlertFeature {
-    properties: {
-      event?: string;
-      areaDesc?: string;
-      severity?: string;
-      status?: string;
-      headline?: string;
-    };
-  }
-  
-  // Format alert data
-  function formatAlert(feature: AlertFeature): string {
-    const props = feature.properties;
-    return [
-      `Event: ${props.event || "Unknown"}`,
-      `Area: ${props.areaDesc || "Unknown"}`,
-      `Severity: ${props.severity || "Unknown"}`,
-      `Status: ${props.status || "Unknown"}`,
-      `Headline: ${props.headline || "No headline"}`,
-      "---",
-    ].join("\n");
-  }
-  
-  interface ForecastPeriod {
-    name?: string;
-    temperature?: number;
-    temperatureUnit?: string;
-    windSpeed?: string;
-    windDirection?: string;
-    shortForecast?: string;
-  }
-  
-  interface AlertsResponse {
-    features: AlertFeature[];
-  }
-  
-  interface PointsResponse {
-    properties: {
-      forecast?: string;
-    };
-  }
-  
-  interface ForecastResponse {
-    properties: {
-      periods: ForecastPeriod[];
-    };
-  }
+    },
+    parameters: {
+      clientId: SFCC_CLIENT_ID,
+      organizationId: SFCC_ORGANIZATION_ID,
+      shortCode: SFCC_SHORT_CODE,
+      siteId: SFCC_SITE_ID,
+    },
+  };
+};
 
-  // Register weather tools
+// Get authenticated shopper product client
+async function getShopperProductsClient() {
+  // Create base config
+  const clientConfig = getBaseClientConfig();
+  
+  try {
+    // Create ShopperLogin client for authentication
+    const shopperLoginClient = new Customer.ShopperLogin(clientConfig);
+    
+    // Get guest user token
+    const token = await slasHelpers.loginGuestUser(shopperLoginClient, {
+      redirectURI: "http://localhost:3000/callback" // not used server-side but required
+    });
+    
+    // Add auth token to headers
+    const authClientConfig = { 
+      ...clientConfig,
+      headers: {
+        ...clientConfig.headers,
+        authorization: `Bearer ${token.access_token}`,
+      }
+    };
+    
+    // Return authenticated client
+    return new Product.ShopperProducts(authClientConfig);
+  } catch (error) {
+    console.error("Error authenticating with SFCC:", error);
+    // Fallback to unauthenticated client if authentication fails
+    return new Product.ShopperProducts(clientConfig);
+  }
+}
+
 server.tool(
-    "get-alerts",
-    "Get weather alerts for a state",
-    {
-      state: z.string().length(2).describe("Two-letter state code (e.g. CA, NY)"),
-    },
-    async ({ state }) => {
-      const stateCode = state.toUpperCase();
-      const alertsUrl = `${NWS_API_BASE}/alerts?area=${stateCode}`;
-      const alertsData = await makeNWSRequest<AlertsResponse>(alertsUrl);
-  
-      if (!alertsData) {
+  "get-product-by-id",
+  "Get product details by product ID",
+  {
+    id: z.string().describe("The product ID to retrieve details for"),
+    locale: z.string().optional().describe("Optional locale for product information"),
+    currency: z.string().optional().describe("Optional currency code for pricing"),
+  },
+  async ({ id, locale, currency }) => {
+    try {
+      const shopperProductsClient = await getShopperProductsClient();
+      
+      // Prepare parameters for product request
+      const params: {
+        id: string;
+        allImages: boolean;
+        locale?: string;
+        currency?: string;
+      } = {
+        id: id,
+        allImages: true,
+      };
+      
+      // Add optional parameters if provided
+      if (locale) params.locale = locale;
+      if (currency) params.currency = currency;
+      
+      // Make the API request
+      const productData = await shopperProductsClient.getProduct({
+        parameters: params
+      });
+      
+      if (!productData) {
         return {
           content: [
             {
               type: "text",
-              text: "Failed to retrieve alerts data",
+              text: `Failed to retrieve product data for ID: ${id}`,
             },
           ],
         };
       }
-  
-      const features = alertsData.features || [];
-      if (features.length === 0) {
-        return {
-          content: [
-            {
-              type: "text",
-              text: `No active alerts for ${stateCode}`,
-            },
-          ],
-        };
+      
+      // Format product information
+      const formattedProduct = [
+        `Product: ${productData.name || "Unknown"}`,
+        `ID: ${productData.id}`,
+      ];
+      
+      // Add additional product information if available
+      if (productData.brand) {
+        formattedProduct.push(`Brand: ${productData.brand}`);
       }
-  
-      const formattedAlerts = features.map(formatAlert);
-      const alertsText = `Active alerts for ${stateCode}:\n\n${formattedAlerts.join("\n")}`;
-  
+      
+      if (productData.price) {
+        formattedProduct.push(`Price: ${productData.price} ${productData.currency || currency || "USD"}`);
+      }
+      
+      if (productData.inventory && productData.inventory.orderable != null) {
+        formattedProduct.push(`In Stock: ${productData.inventory.orderable ? "Yes" : "No"}`);
+      }
+      
+      if (productData.shortDescription) {
+        formattedProduct.push(`Description: ${productData.shortDescription}`);
+      } else if (productData.longDescription) {
+        formattedProduct.push(`Description: ${productData.longDescription}`);
+      }
+      
+      // Add variation information if available
+      if (productData.variationAttributes && productData.variationAttributes.length > 0) {
+        productData.variationAttributes.forEach((attr: any) => {
+          if (attr.id && attr.values && attr.values.length > 0) {
+            const values = attr.values.map((v: any) => v.name || v.value).join(", ");
+            formattedProduct.push(`${attr.name || attr.id}: ${values}`);
+          }
+        });
+      }
+      
+      // Add image information if available
+      if (productData.imageGroups && productData.imageGroups.length > 0 && 
+          productData.imageGroups[0].images && productData.imageGroups[0].images.length > 0) {
+        formattedProduct.push(`Primary Image: ${productData.imageGroups[0].images[0].link}`);
+      }
+      
+      // Add promotions if available
+      if (productData.productPromotions && productData.productPromotions.length > 0) {
+        formattedProduct.push("\nActive Promotions:");
+        productData.productPromotions.forEach((promo: any) => {
+          if (promo.promotionId || promo.calloutMsg) {
+            formattedProduct.push(`- ${promo.calloutMsg || promo.promotionId}`);
+          }
+        });
+      }
+      
+      const productText = formattedProduct.join("\n");
+      
       return {
         content: [
           {
             type: "text",
-            text: alertsText,
+            text: productText,
           },
         ],
       };
-    },
-  );
-  
-  server.tool(
-    "get-forecast",
-    "Get weather forecast for a location",
-    {
-      latitude: z.number().min(-90).max(90).describe("Latitude of the location"),
-      longitude: z.number().min(-180).max(180).describe("Longitude of the location"),
-    },
-    async ({ latitude, longitude }) => {
-      // Get grid point data
-      const pointsUrl = `${NWS_API_BASE}/points/${latitude.toFixed(4)},${longitude.toFixed(4)}`;
-      const pointsData = await makeNWSRequest<PointsResponse>(pointsUrl);
-  
-      if (!pointsData) {
-        return {
-          content: [
-            {
-              type: "text",
-              text: `Failed to retrieve grid point data for coordinates: ${latitude}, ${longitude}. This location may not be supported by the NWS API (only US locations are supported).`,
-            },
-          ],
-        };
-      }
-  
-      const forecastUrl = pointsData.properties?.forecast;
-      if (!forecastUrl) {
-        return {
-          content: [
-            {
-              type: "text",
-              text: "Failed to get forecast URL from grid point data",
-            },
-          ],
-        };
-      }
-  
-      // Get forecast data
-      const forecastData = await makeNWSRequest<ForecastResponse>(forecastUrl);
-      if (!forecastData) {
-        return {
-          content: [
-            {
-              type: "text",
-              text: "Failed to retrieve forecast data",
-            },
-          ],
-        };
-      }
-  
-      const periods = forecastData.properties?.periods || [];
-      if (periods.length === 0) {
-        return {
-          content: [
-            {
-              type: "text",
-              text: "No forecast periods available",
-            },
-          ],
-        };
-      }
-  
-      // Format forecast periods
-      const formattedForecast = periods.map((period: ForecastPeriod) =>
-        [
-          `${period.name || "Unknown"}:`,
-          `Temperature: ${period.temperature || "Unknown"}°${period.temperatureUnit || "F"}`,
-          `Wind: ${period.windSpeed || "Unknown"} ${period.windDirection || ""}`,
-          `${period.shortForecast || "No forecast available"}`,
-          "---",
-        ].join("\n"),
-      );
-  
-      const forecastText = `Forecast for ${latitude}, ${longitude}:\n\n${formattedForecast.join("\n")}`;
-  
+    } catch (error) {
+      console.error("Error fetching product:", error);
       return {
         content: [
           {
             type: "text",
-            text: forecastText,
+            text: `Error retrieving product data for ID: ${id}. ${error instanceof Error ? error.message : 'Unknown error'}`,
           },
         ],
       };
-    },
-  );
+    }
+  },
+);
 
-  async function main() {
-    const transport = new StdioServerTransport();
-    await server.connect(transport);
-    console.error("Weather MCP Server running on stdio");
+async function main() {
+  // Validate required environment variables
+  if (!SFCC_CLIENT_ID) {
+    console.error("Error: SFCC_CLIENT_ID is required. Please set it in the .env file.");
+    process.exit(1);
   }
   
-  main().catch((error) => {
-    console.error("Fatal error in main():", error);
+  if (!SFCC_CLIENT_SECRET) {
+    console.error("Error: SFCC_CLIENT_SECRET is required. Please set it in the .env file.");
     process.exit(1);
-  });
+  }
+  
+  if (!SFCC_ORGANIZATION_ID) {
+    console.error("Error: SFCC_ORGANIZATION_ID is required. Please set it in the .env file.");
+    process.exit(1);
+  }
+  
+  if (!SFCC_SHORT_CODE) {
+    console.error("Error: SFCC_SHORT_CODE is required. Please set it in the .env file.");
+    process.exit(1);
+  }
+
+  const transport = new StdioServerTransport();
+  await server.connect(transport);
+  console.error("SFCC Services MCP Server running on stdio");
+}
+
+main().catch((error) => {
+  console.error("Fatal error in main():", error);
+  process.exit(1);
+});

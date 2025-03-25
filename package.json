@@ -1,7 +1,7 @@
 {
   "type": "module",
   "bin": {
-    "weather": "./build/index.js"
+    "sfcc-mcp": "./build/index.js"
   },
   "scripts": {
     "build": "tsc && chmod 755 build/index.js"
@@ -12,7 +12,15 @@
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.7.0",
     "@types/node": "^22.13.11",
+    "axios": "^1.8.4",
+    "commerce-sdk": "^4.1.0",
+    "dotenv": "^16.4.7",
+    "form-data": "^4.0.2",
     "typescript": "^5.8.2",
     "zod": "^3.24.2"
+  },
+  "devDependencies": {
+    "openapi-typescript-codegen": "^0.29.0",
+    "swagger-typescript-api": "^13.0.24"
   }
 }
