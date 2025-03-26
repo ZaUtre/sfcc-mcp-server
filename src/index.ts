@@ -67,6 +67,42 @@ async function getShopperProductsClient() {
   }
 }
 
+// Simple weather tool that doesn't require SFCC credentials
+server.tool(
+  "get-weather",
+  "Get current weather information for a location",
+  {
+    location: z.string().describe("The location to get weather information for (city name)"),
+  },
+  async ({ location }) => {
+    try {
+      // This is a mock implementation
+      const weatherConditions = ["Sunny", "Cloudy", "Rainy", "Partly Cloudy", "Stormy", "Snowy", "Windy"];
+      const randomCondition = weatherConditions[Math.floor(Math.random() * weatherConditions.length)];
+      const temperature = Math.floor(Math.random() * 35) + 5; // Random temp between 5-40°C
+      
+      return {
+        content: [
+          {
+            type: "text",
+            text: `Weather for ${location}:\nCondition: ${randomCondition}\nTemperature: ${temperature}°C`,
+          },
+        ],
+      };
+    } catch (error) {
+      console.error("Error in weather tool:", error);
+      return {
+        content: [
+          {
+            type: "text",
+            text: `Error retrieving weather for ${location}. ${error instanceof Error ? error.message : 'Unknown error'}`,
+          },
+        ],
+      };
+    }
+  },
+);
+
 server.tool(
   "get-product-by-id",
   "Get product details by product ID",
@@ -207,6 +243,7 @@ async function main() {
     process.exit(1);
   }
 
+  // Set up stdio transport
   const transport = new StdioServerTransport();
   await server.connect(transport);
   console.error("SFCC Services MCP Server running on stdio");
