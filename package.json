@@ -4,22 +4,30 @@
     "sfcc-mcp": "./build/index.js"
   },
   "scripts": {
-    "build": "tsc && chmod 755 build/index.js"
+    "build": "tsc && chmod 755 build/index.js",
+    "test:weather": "echo '{\"type\":\"request\",\"id\":\"123\",\"toolId\":\"get-weather\",\"toolInput\":{\"location\":\"San Francisco\"}}' | node debug.js",
+    "test:product": "echo '{\"type\":\"request\",\"id\":\"124\",\"toolId\":\"get-product-by-id\",\"toolInput\":{\"id\":\"5\"}}' | node debug.js",
+    "mock": "node mock-server.js",
+    "mock:weather": "echo '{\"type\":\"request\",\"id\":\"123\",\"toolId\":\"get-weather\",\"toolInput\":{\"location\":\"San Francisco\"}}' | node mock-server.js",
+    "mock:product": "echo '{\"type\":\"request\",\"id\":\"124\",\"toolId\":\"get-product-by-id\",\"toolInput\":{\"id\":\"5\"}}' | node mock-server.js",
+    "mock:catalogs": "echo '{\"type\":\"request\",\"id\":\"125\",\"toolId\":\"get-catalogs\",\"toolInput\":{}}' | node mock-server.js"
   },
   "files": [
     "build"
   ],
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.7.0",
-    "@types/node": "^22.13.11",
     "axios": "^1.8.4",
     "commerce-sdk": "^4.1.0",
     "dotenv": "^16.4.7",
     "form-data": "^4.0.2",
+    "loglevel": "^1.9.2",
+    "node-fetch": "^3.3.2",
     "typescript": "^5.8.2",
     "zod": "^3.24.2"
   },
   "devDependencies": {
+    "@types/node": "^22.13.14",
     "openapi-typescript-codegen": "^0.29.0",
     "swagger-typescript-api": "^13.0.24"
   }

@@ -3,12 +3,20 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { z } from "zod";
 import { config } from "dotenv";
 import { Product, ClientConfig, Customer, slasHelpers } from "commerce-sdk";
+import fetch from "node-fetch";
 
 // Load environment variables
 config();
 
+// Shopper API credentials
 const SFCC_CLIENT_ID = process.env.SFCC_CLIENT_ID || "";
 const SFCC_CLIENT_SECRET = process.env.SFCC_CLIENT_SECRET || "";
+
+// Admin API credentials (separate client)
+const SFCC_ADMIN_CLIENT_ID = process.env.SFCC_ADMIN_CLIENT_ID || "";
+const SFCC_ADMIN_CLIENT_SECRET = process.env.SFCC_ADMIN_CLIENT_SECRET || "";
+
+// Shared configuration
 const SFCC_SITE_ID = process.env.SFCC_SITE_ID || "RefArch";
 const SFCC_ORGANIZATION_ID = process.env.SFCC_ORGANIZATION_ID || "";
 const SFCC_SHORT_CODE = process.env.SFCC_SHORT_CODE || "";
@@ -20,14 +28,20 @@ const server = new McpServer({
   version: "1.0.0",
 });
 
-// Create basic client config
-const getBaseClientConfig = (): ClientConfig => {
+// API types
+enum ApiType {
+  SHOPPER = 'shopper',
+  ADMIN = 'admin'
+}
+
+// Create basic client config based on API type
+const getBaseClientConfig = (apiType: ApiType = ApiType.SHOPPER): ClientConfig => {
   return {
     headers: {
       "User-Agent": USER_AGENT,
     },
     parameters: {
-      clientId: SFCC_CLIENT_ID,
+      clientId: apiType === ApiType.ADMIN ? SFCC_ADMIN_CLIENT_ID : SFCC_CLIENT_ID,
       organizationId: SFCC_ORGANIZATION_ID,
       shortCode: SFCC_SHORT_CODE,
       siteId: SFCC_SITE_ID,
@@ -35,12 +49,12 @@ const getBaseClientConfig = (): ClientConfig => {
   };
 };
 
-// Get authenticated shopper product client
-async function getShopperProductsClient() {
-  // Create base config
-  const clientConfig = getBaseClientConfig();
-  
+// Get authentication token for SFCC Shopper APIs using SLAS
+async function getShopperAuthToken() {
   try {
+    // Create base config for shopper APIs
+    const clientConfig = getBaseClientConfig(ApiType.SHOPPER);
+    
     // Create ShopperLogin client for authentication
     const shopperLoginClient = new Customer.ShopperLogin(clientConfig);
     
@@ -49,12 +63,100 @@ async function getShopperProductsClient() {
       redirectURI: "http://localhost:3000/callback" // not used server-side but required
     });
     
+    return token.access_token;
+  } catch (error) {
+    console.error("Error getting shopper auth token:", error);
+    throw error;
+  }
+}
+
+// Get authentication token for SFCC Admin APIs using Client Credentials
+async function getAdminAuthToken() {
+  try {
+    // Check if admin credentials are available
+    if (!SFCC_ADMIN_CLIENT_ID || !SFCC_ADMIN_CLIENT_SECRET) {
+      throw new Error("Admin API client credentials not configured. Please set SFCC_ADMIN_CLIENT_ID and SFCC_ADMIN_CLIENT_SECRET in your .env file.");
+    }
+    
+    // Build the token URL according to the documentation cURL example
+    // This approach has been verified to work with valid credentials
+    const tokenUrl = `https://account.demandware.com/dwsso/oauth2/access_token`;
+    
+    // Format the scope string exactly as in the cURL example: SALESFORCE_COMMERCE_API:realm_instance scopes
+    // Extract realm ID from organization ID
+    const realmId = SFCC_ORGANIZATION_ID.replace('f_ecom_', '');
+    const instanceId = SFCC_SHORT_CODE;
+    const scopeValue = `SALESFORCE_COMMERCE_API:${realmId}_${instanceId} sfcc.catalogs`;
+    
+    // Create form data for POST request following the cURL example
+    const formData = new URLSearchParams();
+    formData.append('grant_type', 'client_credentials');
+    formData.append('scope', scopeValue);
+    
+    // Use Basic Authentication with client credentials (like the --user flag in cURL)
+    // This is what curl --user "client_id:client_secret" does under the hood
+    const authHeader = `Basic ${Buffer.from(`${SFCC_ADMIN_CLIENT_ID}:${SFCC_ADMIN_CLIENT_SECRET}`).toString('base64')}`;
+    
+    // Create token request with client credentials grant
+    const response = await fetch(tokenUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Authorization': authHeader
+      },
+      body: formData.toString()
+    });
+    
+    if (!response.ok) {
+      // Extract error information
+      let errorDetails = "";
+      try {
+        const errorText = await response.text();
+        errorDetails = errorText;
+      } catch (e) {
+        errorDetails = "Could not read error response";
+      }
+      
+      throw new Error(`Failed to obtain admin token: ${response.status} ${response.statusText} - ${errorDetails}`);
+    }
+    
+    const tokenData = await response.json() as { 
+      access_token: string;
+      scope?: string;
+      token_type: string;
+      expires_in: number 
+    };
+    
+    // Log success but not the token itself
+    console.log(`Successfully obtained admin token with scopes: ${tokenData.scope || 'not specified'}`);
+    
+    return tokenData.access_token;
+  } catch (error) {
+    console.error("Error getting admin auth token:", error);
+    throw error;
+  }
+}
+
+// Get authentication token based on API type
+async function getAuthToken(apiType: ApiType = ApiType.SHOPPER) {
+  return apiType === ApiType.ADMIN ? getAdminAuthToken() : getShopperAuthToken();
+}
+
+// Get authenticated shopper product client
+async function getShopperProductsClient() {
+  // Create base config for shopper APIs
+  const clientConfig = getBaseClientConfig(ApiType.SHOPPER);
+  
+  try {
+    // Get shopper auth token
+    const accessToken = await getShopperAuthToken();
+    
     // Add auth token to headers
     const authClientConfig = { 
       ...clientConfig,
       headers: {
         ...clientConfig.headers,
-        authorization: `Bearer ${token.access_token}`,
+        authorization: `Bearer ${accessToken}`,
       }
     };
     
@@ -221,8 +323,126 @@ server.tool(
   },
 );
 
+// Function to get catalogs using the Admin API
+async function getCatalogs() {
+  try {
+    // Get admin auth token
+    const accessToken = await getAuthToken(ApiType.ADMIN);
+    
+    // Construct catalog API URL
+    const catalogsUrl = `https://${SFCC_SHORT_CODE}.api.commercecloud.salesforce.com/product/catalogs/v1/organizations/${SFCC_ORGANIZATION_ID}/catalogs`;
+    
+    // Make API request
+    const response = await fetch(catalogsUrl, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'x-dw-client-id': SFCC_ADMIN_CLIENT_ID,
+        'User-Agent': USER_AGENT
+      }
+    });
+    
+    if (!response.ok) {
+      if (response.status === 401) {
+        // If unauthorized, likely missing required scope or incorrect credentials
+        throw new Error(`Unauthorized to access catalogs. The admin API client may not have the required permissions or is not properly configured.`);
+      } else {
+        throw new Error(`Failed to fetch catalogs: ${response.status} ${response.statusText}`);
+      }
+    }
+    
+    return await response.json();
+  } catch (error) {
+    console.error("Error fetching catalogs:", error);
+    
+    // Fall back to mock data if admin credentials aren't configured yet
+    if (error instanceof Error && error.message && error.message.includes('not configured')) {
+      console.warn("Admin credentials not configured, using mock catalog data");
+      return {
+        data: [
+          {
+            id: "mock-catalog",
+            name: "Mock Catalog (Admin credentials not configured)",
+            description: "This is mock data because admin API credentials are not available."
+          }
+        ]
+      };
+    }
+    
+    throw error;
+  }
+}
+
+// Define catalog data type
+interface Catalog {
+  id: string;
+  name?: string;
+  description?: string;
+}
+
+interface CatalogsResponse {
+  data: Catalog[];
+}
+
+// Add get-catalogs tool
+server.tool(
+  "get-catalogs",
+  "Get a list of available catalogs",
+  {}, // No input parameters needed
+  async () => {
+    try {
+      const catalogsData = await getCatalogs() as CatalogsResponse;
+      
+      if (!catalogsData || !catalogsData.data || catalogsData.data.length === 0) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: "No catalogs found.",
+            },
+          ],
+        };
+      }
+      
+      // Format catalogs information
+      const formattedCatalogs = ["Available Catalogs:"];
+      
+      catalogsData.data.forEach((catalog: Catalog, index: number) => {
+        formattedCatalogs.push(`\n${index + 1}. ID: ${catalog.id}`);
+        
+        if (catalog.name) {
+          formattedCatalogs.push(`   Name: ${catalog.name}`);
+        }
+        
+        if (catalog.description) {
+          formattedCatalogs.push(`   Description: ${catalog.description}`);
+        }
+      });
+      
+      return {
+        content: [
+          {
+            type: "text",
+            text: formattedCatalogs.join("\n"),
+          },
+        ],
+      };
+    } catch (error) {
+      console.error("Error in get-catalogs tool:", error);
+      return {
+        content: [
+          {
+            type: "text",
+            text: `Error retrieving catalog data. ${error instanceof Error ? error.message : 'Unknown error'}`,
+          },
+        ],
+      };
+    }
+  },
+);
+
 async function main() {
-  // Validate required environment variables
+  // Validate required environment variables for Shopper APIs
   if (!SFCC_CLIENT_ID) {
     console.error("Error: SFCC_CLIENT_ID is required. Please set it in the .env file.");
     process.exit(1);
@@ -241,6 +461,14 @@ async function main() {
   if (!SFCC_SHORT_CODE) {
     console.error("Error: SFCC_SHORT_CODE is required. Please set it in the .env file.");
     process.exit(1);
+  }
+
+  // Check for Admin API credentials (warn but don't exit if missing)
+  if (!SFCC_ADMIN_CLIENT_ID || !SFCC_ADMIN_CLIENT_SECRET) {
+    console.warn("Warning: Admin API credentials (SFCC_ADMIN_CLIENT_ID and SFCC_ADMIN_CLIENT_SECRET) are not set.");
+    console.warn("The get-catalogs tool will fall back to mock data until these are configured.");
+  } else {
+    console.log("Admin API credentials configured. get-catalogs tool will use real API data.");
   }
 
   // Set up stdio transport
