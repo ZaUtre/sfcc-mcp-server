@@ -40,10 +40,11 @@ async function testAdminAuth() {
     // Format: SALESFORCE_COMMERCE_API:realm_instance scopes
     const realmId = SFCC_ORGANIZATION_ID.replace('f_ecom_', '');  // Extract realm from org ID
     const instanceId = SFCC_SHORT_CODE;
-    const oauthScopes = "sfcc.catalogs";
+    const oauthScopes = "sfcc.catalogs sfcc.catalogs.rw";
     
-    // Format scope exactly as in the cURL example - EXACTLY like this
-    const scopeValue = `SALESFORCE_COMMERCE_API:${realmId}_${instanceId} ${oauthScopes}`;
+    // Try format with just the basic scope, not the realm prefixed version
+    // If we use the full format, it might restrict to specific realm/instance too strongly
+    const scopeValue = `${oauthScopes}`;
     console.log("Requesting scope:", scopeValue);
     
     // Show equivalent curl command for debugging
@@ -56,15 +57,17 @@ async function testAdminAuth() {
     formData.append('grant_type', 'client_credentials');
     formData.append('scope', scopeValue);
     
-    // Basic auth header with client credentials (this is what --user in curl does)
-    const authHeader = `Basic ${Buffer.from(`${SFCC_ADMIN_CLIENT_ID}:${SFCC_ADMIN_CLIENT_SECRET}`).toString('base64')}`;
-    console.log("Using Basic Auth header (credentials masked)");
+    // Switch to client_secret_post method
+    // Instead of Basic Auth, include credentials in form data
+    formData.append('client_id', SFCC_ADMIN_CLIENT_ID);
+    formData.append('client_secret', SFCC_ADMIN_CLIENT_SECRET);
+    
+    console.log("Using client_secret_post method instead of Basic Auth");
     
     const response = await fetch(tokenUrl, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'Authorization': authHeader
+        'Content-Type': 'application/x-www-form-urlencoded'
       },
       body: formData.toString()
     });

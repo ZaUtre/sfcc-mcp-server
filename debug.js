@@ -1,90 +1,72 @@
-// debug.js
-import { z } from "zod";
-import { config } from "dotenv";
+// debug.js - A simple script to forward stdin to the MCP server and print both request and response
+import { spawn } from 'child_process';
+import fs from 'fs';
 
-// Load environment variables
-config();
+// Read the incoming request from stdin
+let requestData = '';
+process.stdin.on('data', chunk => {
+  requestData += chunk;
+});
 
-console.error("Script starting...");
-
-// Simple test handler
-async function handleWeatherRequest(location) {
-  console.error("Weather tool called with location:", location);
-  
-  // Mock implementation
-  const weatherConditions = ["Sunny", "Cloudy", "Rainy", "Partly Cloudy", "Stormy", "Snowy", "Windy"];
-  const randomCondition = weatherConditions[Math.floor(Math.random() * weatherConditions.length)];
-  const temperature = Math.floor(Math.random() * 35) + 5; // Random temp between 5-40°C
-  
-  return {
-    type: "response",
-    id: "test-response",
-    content: [
-      {
-        type: "text",
-        text: `Weather for ${location}:\nCondition: ${randomCondition}\nTemperature: ${temperature}°C`,
-      },
-    ],
-  };
-}
-
-async function main() {
-  console.error("Debug server running...");
-  
-  // Process stdin
-  process.stdin.setEncoding('utf8');
-  
-  process.stdin.on('data', async (data) => {
-    console.error("DEBUG Received stdin data:", data.toString().trim());
+process.stdin.on('end', () => {
+  try {
+    // Parse the request to log it
+    const requestObj = JSON.parse(requestData);
+    console.error("Request received:", JSON.stringify(requestObj, null, 2));
     
-    try {
-      const request = JSON.parse(data.toString().trim());
-      console.error("Parsed request:", JSON.stringify(request, null, 2));
+    // Pass the request to the MCP server
+    const serverProcess = spawn('node', ['build/index.js'], {
+      stdio: ['pipe', 'pipe', 'pipe']
+    });
+    
+    // Send the request to the server
+    serverProcess.stdin.write(requestData);
+    serverProcess.stdin.end();
+    
+    let stdoutData = '';
+    let stderrData = '';
+    
+    // Collect stdout data
+    serverProcess.stdout.on('data', (data) => {
+      stdoutData += data.toString();
+    });
+    
+    // Collect stderr data
+    serverProcess.stderr.on('data', (data) => {
+      stderrData += data.toString();
+      // Also log stderr in real time
+      console.error("Server log:", data.toString().trim());
+    });
+    
+    // Handle process exit
+    serverProcess.on('close', (code) => {
+      if (code !== 0) {
+        console.error(`Server process exited with code ${code}`);
+      }
       
-      if (request.type === "request") {
-        let response;
-        
-        if (request.toolId === "get-weather") {
-          response = await handleWeatherRequest(request.toolInput.location);
-        } else if (request.toolId === "get-product-by-id") {
-          response = {
-            type: "response",
-            id: request.id,
-            content: [
-              {
-                type: "text",
-                text: `Product: Sample Product\nID: ${request.toolInput.id}\nBrand: SampleBrand\nPrice: 19.99 USD\nIn Stock: Yes\nDescription: This is a sample product description for ID ${request.toolInput.id}`,
-              },
-            ],
-          };
-        } else {
-          response = {
-            type: "response",
-            id: request.id,
-            content: [
-              {
-                type: "text",
-                text: `Unknown tool: ${request.toolId}`,
-              },
-            ],
-          };
+      // Print collected stderr if any
+      if (stderrData) {
+        console.error("All server logs:", stderrData);
+      }
+      
+      // Try to parse stdout as JSON
+      if (stdoutData) {
+        try {
+          const responseObj = JSON.parse(stdoutData);
+          console.error("Response (parsed):", JSON.stringify(responseObj, null, 2));
+        } catch (e) {
+          console.error("Could not parse response as JSON:", e.message);
+          console.error("Raw stdout:", stdoutData);
         }
         
-        // Send response
-        console.error("Sending response:", JSON.stringify(response, null, 2));
-        console.log(JSON.stringify(response));
+        // Pass the response to the caller
+        console.log(stdoutData);
+      } else {
+        console.error("No response from server");
       }
-    } catch (error) {
-      console.error("ERROR processing request:", error);
-    }
-  });
-  
-  // Keep the process alive
-  setInterval(() => {}, 1000);
-}
-
-console.error("Calling main()...");
-main().catch((error) => {
-  console.error("Fatal error in main():", error);
-  process.exit(1);
+    });
+    
+  } catch (error) {
+    console.error("Error in debug script:", error);
+  }
 });

@@ -26,17 +26,18 @@ async function testCredentials(clientId, clientSecret, realmId, instanceId) {
     const tokenUrl = `https://account.demandware.com/dwsso/oauth2/access_token`;
     console.log("Token URL:", tokenUrl);
     
-    // Format scope exactly as in the cURL example
-    const scopeValue = `SALESFORCE_COMMERCE_API:${realmId}_${instanceId} sfcc.catalogs`;
+    // Try a simpler scope format that matches the allowed scopes in the API client config
+    const scopeValue = `sfcc.catalogs`;
     console.log("Requesting scope:", scopeValue);
     
     // Show equivalent curl command for debugging
     console.log("\nEquivalent curl command:");
     console.log(`curl "${tokenUrl}" \\`);
     console.log(`  --request 'POST' \\`);
-    console.log(`  --user "${clientId}:****" \\`);
     console.log(`  --header 'Content-Type: application/x-www-form-urlencoded' \\`);
     console.log(`  --data "grant_type=client_credentials" \\`);
+    console.log(`  --data "client_id=${clientId}" \\`);
+    console.log(`  --data "client_secret=****" \\`);
     console.log(`  --data-urlencode "scope=${scopeValue}"`);
     
     // Create form data for POST request
@@ -44,14 +45,18 @@ async function testCredentials(clientId, clientSecret, realmId, instanceId) {
     formData.append('grant_type', 'client_credentials');
     formData.append('scope', scopeValue);
     
-    // Basic auth header with client credentials (this is what --user in curl does)
-    const authHeader = `Basic ${Buffer.from(`${clientId}:${clientSecret}`).toString('base64')}`;
+    // Configure auth based on the endpoint auth method
+    // For client_secret_post method, include credentials in the form body
+    console.log("Using client_secret_post method (credentials in form body)");
+    
+    // Add client credentials to the form data
+    formData.append('client_id', clientId);
+    formData.append('client_secret', clientSecret);
     
     const response = await fetch(tokenUrl, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'Authorization': authHeader
+        'Content-Type': 'application/x-www-form-urlencoded'
       },
       body: formData.toString()
     });

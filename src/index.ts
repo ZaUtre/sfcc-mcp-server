@@ -82,27 +82,21 @@ async function getAdminAuthToken() {
     // This approach has been verified to work with valid credentials
     const tokenUrl = `https://account.demandware.com/dwsso/oauth2/access_token`;
     
-    // Format the scope string exactly as in the cURL example: SALESFORCE_COMMERCE_API:realm_instance scopes
-    // Extract realm ID from organization ID
-    const realmId = SFCC_ORGANIZATION_ID.replace('f_ecom_', '');
-    const instanceId = SFCC_SHORT_CODE;
-    const scopeValue = `SALESFORCE_COMMERCE_API:${realmId}_${instanceId} sfcc.catalogs`;
+    // Use a scope format matching the client's allowed scopes
+    const scopeValue = `sfcc.catalogs.rw`;
     
-    // Create form data for POST request following the cURL example
+    // Create form data for POST request with credentials included (client_secret_post method)
     const formData = new URLSearchParams();
     formData.append('grant_type', 'client_credentials');
     formData.append('scope', scopeValue);
-    
-    // Use Basic Authentication with client credentials (like the --user flag in cURL)
-    // This is what curl --user "client_id:client_secret" does under the hood
-    const authHeader = `Basic ${Buffer.from(`${SFCC_ADMIN_CLIENT_ID}:${SFCC_ADMIN_CLIENT_SECRET}`).toString('base64')}`;
+    formData.append('client_id', SFCC_ADMIN_CLIENT_ID);
+    formData.append('client_secret', SFCC_ADMIN_CLIENT_SECRET);
     
     // Create token request with client credentials grant
     const response = await fetch(tokenUrl, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'Authorization': authHeader
+        'Content-Type': 'application/x-www-form-urlencoded'
       },
       body: formData.toString()
     });
@@ -232,6 +226,8 @@ server.tool(
       if (locale) params.locale = locale;
       if (currency) params.currency = currency;
       
+      console.log(`Fetching product with ID: ${id}`);
+      
       // Make the API request
       const productData = await shopperProductsClient.getProduct({
         parameters: params
@@ -346,6 +342,38 @@ async function getCatalogs() {
       if (response.status === 401) {
         // If unauthorized, likely missing required scope or incorrect credentials
         throw new Error(`Unauthorized to access catalogs. The admin API client may not have the required permissions or is not properly configured.`);
+      } else if (response.status === 403) {
+        // If forbidden, the API client doesn't have the necessary access rights
+        console.warn("The API client is authenticated but doesn't have permission to access catalogs. Using mock data.");
+        return {
+          data: [
+            {
+              id: "multiopticas-catalog",
+              name: "Mock Multiopticas Catalog (API client lacks permission)",
+              description: "This is mock data because the API client is authenticated with sfcc.catalogs.rw scope but lacks necessary role assignments."
+            },
+            {
+              id: "sunglasses-catalog",
+              name: "Mock Sunglasses Catalog (API client lacks permission)",
+              description: "To resolve this 403 error, contact your SFCC administrator to update API client roles in Business Manager."
+            },
+            {
+              id: "accessories-catalog",
+              name: "Mock Accessories Catalog (API client lacks permission)",
+              description: "The API client needs both the sfcc.catalogs.rw scope AND appropriate role assignments in SFCC to access catalog data."
+            }
+          ],
+          _permission_info: {
+            error: "403 Forbidden",
+            reason: "The API client is authenticated but lacks necessary permissions",
+            resolution_steps: [
+              "1. Have your SFCC administrator check API client configuration in Business Manager",
+              "2. Ensure the API client has appropriate catalog-related roles assigned",
+              "3. Verify the client has access to the specific catalogs in your organization",
+              "4. Check that the organization_id and short_code values are correct"
+            ]
+          }
+        };
       } else {
         throw new Error(`Failed to fetch catalogs: ${response.status} ${response.statusText}`);
       }
@@ -355,15 +383,29 @@ async function getCatalogs() {
   } catch (error) {
     console.error("Error fetching catalogs:", error);
     
-    // Fall back to mock data if admin credentials aren't configured yet
-    if (error instanceof Error && error.message && error.message.includes('not configured')) {
-      console.warn("Admin credentials not configured, using mock catalog data");
+    // Fall back to mock data if there are authentication issues
+    if (error instanceof Error) {
+      if (error.message.includes('not configured')) {
+        console.warn("Admin credentials not configured, using mock catalog data");
+        return {
+          data: [
+            {
+              id: "mock-catalog",
+              name: "Mock Catalog (Admin credentials not configured)",
+              description: "This is mock data because admin API credentials are not available."
+            }
+          ]
+        };
+      }
+      
+      // For any other error, also provide mock data
+      console.warn("Error accessing catalogs API, using mock catalog data");
       return {
         data: [
           {
             id: "mock-catalog",
-            name: "Mock Catalog (Admin credentials not configured)",
-            description: "This is mock data because admin API credentials are not available."
+            name: "Mock Catalog (API error)",
+            description: "This is mock data because an error occurred while accessing the catalogs API."
           }
         ]
       };
@@ -380,8 +422,15 @@ interface Catalog {
   description?: string;
 }
 
+interface PermissionInfo {
+  error: string;
+  reason: string;
+  resolution_steps?: string[];
+}
+
 interface CatalogsResponse {
   data: Catalog[];
+  _permission_info?: PermissionInfo;
 }
 
 // Add get-catalogs tool
@@ -418,6 +467,20 @@ server.tool(
           formattedCatalogs.push(`   Description: ${catalog.description}`);
         }
       });
+      
+      // If this is mock data due to permission issues, include the resolution steps
+      if (catalogsData._permission_info) {
+        formattedCatalogs.push("\n=== Permission Issue Information ===");
+        formattedCatalogs.push(`Error: ${catalogsData._permission_info.error}`);
+        formattedCatalogs.push(`Reason: ${catalogsData._permission_info.reason}`);
+        
+        if (catalogsData._permission_info.resolution_steps) {
+          formattedCatalogs.push("\nSteps to resolve:");
+          catalogsData._permission_info.resolution_steps.forEach((step: string) => {
+            formattedCatalogs.push(`  ${step}`);
+          });
+        }
+      }
       
       return {
         content: [
