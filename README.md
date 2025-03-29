@@ -61,37 +61,10 @@ If you encounter a 403 Forbidden error with the Catalogs API, check that:
 
 ## Usage
 
-You can run the server directly:
+Start the server:
 
 ```bash
 node build/index.js
-```
-
-Or use the test scripts:
-
-```bash
-# Test weather tool
-npm run test:weather
-
-# Test product tool
-npm run test:product
-
-# Test catalogs tool
-npm run test:catalogs
-```
-
-## Mock Server
-
-For development and testing, you can use the mock server:
-
-```bash
-# Run mock server
-npm run mock
-
-# Test specific tools with mock server
-npm run mock:weather
-npm run mock:product
-npm run mock:catalogs
 ```
 
 ## API Tools
