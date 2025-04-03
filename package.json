@@ -4,7 +4,7 @@
     "sfcc-mcp": "./build/index.js"
   },
   "scripts": {
-    "build": "tsc && chmod 755 build/index.js",
+    "build": "tsc && chmod 755 build/index.js && cp src/endpoints.json build/",
     "test:ocapi": "node test-ocapi-product.js",
     "test:catalogs": "node test-ocapi-product.js"
   },

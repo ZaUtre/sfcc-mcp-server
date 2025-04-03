@@ -1,0 +1,27 @@
+{
+  "endpoints": [
+    {
+      "path": "/catalogs",
+      "description": "Get a list of available catalogs",
+      "params": []
+    },
+    {
+      "path": "/catalogs/{catalog_id}",
+      "description": "Get details of a specific catalog by ID",
+      "params": [
+        { "name": "catalog_id", "description": "The ID of the catalog to retrieve", "type": "string" }
+      ]
+    },
+    {
+      "path": "/catalogs/{catalog_id}/categories/{category_id}/category_links/{target_catalog_id}/{target_category_id}/{type}",
+      "description": "Get category links between categories in different catalogs",
+      "params": [
+        { "name": "catalog_id", "description": "The source catalog ID", "type": "string" },
+        { "name": "category_id", "description": "The source category ID", "type": "string" },
+        { "name": "target_catalog_id", "description": "The target catalog ID", "type": "string" },
+        { "name": "target_category_id", "description": "The target category ID", "type": "string" },
+        { "name": "type", "description": "The type of category link", "type": "string" }
+      ]
+    }
+  ]
+} 

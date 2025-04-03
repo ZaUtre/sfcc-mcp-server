@@ -4,6 +4,13 @@ import { z } from "zod";
 import { config } from "dotenv";
 import { Product, ClientConfig, Customer, slasHelpers } from "commerce-sdk";
 import fetch from "node-fetch";
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+// Get the directory name of the current module
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Load environment variables
 config();
@@ -134,33 +141,28 @@ interface Endpoint {
   params: EndpointParam[];
 }
 
-// Define available endpoints
-const endpoints: Endpoint[] = [
-  {
-    path: "/catalogs",
-    description: "Get a list of available catalogs",
-    params: []
-  },
-  {
-    path: "/catalogs/{catalog_id}",
-    description: "Get details of a specific catalog by ID",
-    params: [
-      { name: "catalog_id", description: "The ID of the catalog to retrieve", type: "string" }
-    ]
-  },
-  {
-    path: "/catalogs/{catalog_id}/categories/{category_id}/category_links/{target_catalog_id}/{target_category_id}/{type}",
-    description: "Get category links between categories in different catalogs",
-    params: [
-      { name: "catalog_id", description: "The source catalog ID", type: "string" },
-      { name: "category_id", description: "The source category ID", type: "string" },
-      { name: "target_catalog_id", description: "The target catalog ID", type: "string" },
-      { name: "target_category_id", description: "The target category ID", type: "string" },
-      { name: "type", description: "The type of category link", type: "string" }
-    ]
+// Load endpoints from JSON file
+function loadEndpoints(): Endpoint[] {
+  try {
+    const endpointsPath = path.join(__dirname, 'endpoints.json');
+    const endpointsData = fs.readFileSync(endpointsPath, 'utf8');
+    const { endpoints } = JSON.parse(endpointsData);
+    return endpoints;
+  } catch (error) {
+    console.error('Error loading endpoints from JSON file:', error);
+    // Return default endpoints if file can't be loaded
+    return [
+      {
+        path: "/catalogs",
+        description: "Get a list of available catalogs",
+        params: []
+      }
+    ];
   }
-  // Add more endpoints as needed
-];
+}
+
+// Get endpoints from JSON file
+const endpoints: Endpoint[] = loadEndpoints();
 
 // Function to replace path parameters with actual values
 function replacePathParams(path: string, params: Record<string, string>): string {
