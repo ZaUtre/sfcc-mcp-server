@@ -1,27 +1,897 @@
 {
-  "endpoints": [
-    {
-      "path": "/catalogs",
-      "description": "Get a list of available catalogs",
-      "params": []
-    },
-    {
-      "path": "/catalogs/{catalog_id}",
-      "description": "Get details of a specific catalog by ID",
-      "params": [
-        { "name": "catalog_id", "description": "The ID of the catalog to retrieve", "type": "string" }
-      ]
-    },
-    {
-      "path": "/catalogs/{catalog_id}/categories/{category_id}/category_links/{target_catalog_id}/{target_category_id}/{type}",
-      "description": "Get category links between categories in different catalogs",
-      "params": [
-        { "name": "catalog_id", "description": "The source catalog ID", "type": "string" },
-        { "name": "category_id", "description": "The source category ID", "type": "string" },
-        { "name": "target_catalog_id", "description": "The target catalog ID", "type": "string" },
-        { "name": "target_category_id", "description": "The target category ID", "type": "string" },
-        { "name": "type", "description": "The type of category link", "type": "string" }
-      ]
-    }
-  ]
-} 
+    "endpoints": [
+        {
+            "path": "/alerts/descriptors",
+            "description": "Action to retrieve all alert descriptors.",
+            "params": []
+        },
+        {
+            "path": "/alerts/descriptors/{application_id}",
+            "description": "Action to retrieve alert descriptors for a specific application.",
+            "params": [
+            {"name": "application_id", "description": "The ID of the application.", "type": "string"}
+            ]
+        },
+        {
+            "path": "/alerts/descriptors/{application_id}/{application_context_path}/{message_id}",
+            "description": "Action to retrieve a specific alert descriptor message.",
+            "params": [
+            {"name": "application_id", "description": "The ID of the application.", "type": "string"},
+            {"name": "application_context_path", "description": "The context path of the application.", "type": "string"},
+            {"name": "message_id", "description": "The ID of the alert message.", "type": "string"}
+            ]
+        },
+        {
+            "path": "/alerts/usersettings",
+            "description": "Action to retrieve user settings related to alerts.",
+            "params": []
+        },
+        {
+            "path": "/catalogs",
+            "description": "Action to retrieve a list of all catalogs.",
+            "params": [
+                {"name": "locale", "description": "The locale context.", "type": "string", "required": false}
+            ]
+        },
+        {
+            "path": "/catalogs/{catalog_id}",
+            "description": "Action to retrieve details for a specific catalog.",
+            "params": [
+                {"name": "catalog_id", "description": "The ID of the catalog.", "type": "string", "required": true},
+                {"name": "locale", "description": "The locale context.", "type": "string", "required": false}
+            ]
+        },
+        {
+            "path": "/catalogs/{catalog_id}/categories",
+            "description": "Action to retrieve all categories of the specified catalog.",
+            "params": [
+                {"name": "catalog_id", "description": "The id of the catalog.", "type": "string", "required": true},
+                {"name": "levels", "description": "The number of levels of categories to retrieve.", "type": "integer", "required": false},
+                {"name": "locale", "description": "The locale context.", "type": "string", "required": false}
+            ]
+        },
+        {
+            "path": "/catalogs/{catalog_id}/categories/{category_id}",
+            "description": "Action to retrieve a specific category within a catalog.",
+            "params": [
+                {"name": "catalog_id", "description": "The ID of the catalog.", "type": "string", "required": true},
+                {"name": "category_id", "description": "The ID of the category.", "type": "string", "required": true},
+                {"name": "levels", "description": "The number of levels of sub-categories to retrieve.", "type": "integer", "required": false},
+                {"name": "locale", "description": "The locale context.", "type": "string", "required": false}
+            ]
+        },
+        {
+            "path": "/catalogs/{catalog_id}/categories/{category_id}/category_links",
+            "description": "Action to retrieve category links for a specific category within a catalog.",
+            "params": [
+            {"name": "catalog_id", "description": "The ID of the catalog.", "type": "string"},
+            {"name": "category_id", "description": "The ID of the category.", "type": "string"},
+                {"name": "locale", "description": "The locale context.", "type": "string"}
+            ]
+        },
+        {
+            "path": "/catalogs/{catalog_id}/categories/{category_id}/category_links/{target_catalog_id}/{target_category_id}/{type}",
+            "description": "Action to retrieve a specific category link by target catalog, category, and type.",
+            "params": [
+            {"name": "catalog_id", "description": "The ID of the source catalog.", "type": "string"},
+            {"name": "category_id", "description": "The ID of the source category.", "type": "string"},
+            {"name": "target_catalog_id", "description": "The ID of the target catalog.", "type": "string"},
+            {"name": "target_category_id", "description": "The ID of the target category.", "type": "string"},
+            {"name": "type", "description": "The type of the category link.", "type": "string"},
+            {"name": "locale", "description": "The locale context.", "type": "string"}
+            ]
+        },
+        {
+            "path": "/catalogs/{catalog_id}/categories/{category_id}/products/{product_id}",
+            "description": "Action to retrieve a specific product within a category and catalog.",
+            "params": [
+            {"name": "catalog_id", "description": "The ID of the catalog.", "type": "string"},
+            {"name": "category_id", "description": "The ID of the category.", "type": "string"},
+            {"name": "product_id", "description": "The ID of the product.", "type": "string"},
+            {"name": "locale", "description": "The locale context.", "type": "string"}
+            ]
+        },
+        {
+            "path": "/catalogs/{catalog_id}/shared_product_options",
+            "description": "Action to retrieve shared product options for a specific catalog.",
+            "params": [
+                {"name": "catalog_id", "description": "The ID of the catalog.", "type": "string"},
+                {"name": "locale", "description": "The locale context.", "type": "string"}
+            ]
+        },
+        {
+            "path": "/catalogs/{catalog_id}/shared_product_options/{id}",
+            "description": "Action to retrieve a specific shared product option by ID for a catalog.",
+            "params": [
+                {"name": "catalog_id", "description": "The ID of the catalog.", "type": "string"},
+                {"name": "id", "description": "The ID of the shared product option.", "type": "string"},
+                {"name": "locale", "description": "The locale context.", "type": "string"}
+            ]
+        },
+        {
+            "path": "/catalogs/{catalog_id}/shared_product_options/{option_id}/values",
+            "description": "Action to retrieve values for a specific shared product option within a catalog.",
+            "params": [
+                {"name": "catalog_id", "description": "The ID of the catalog.", "type": "string"},
+                {"name": "option_id", "description": "The ID of the shared product option.", "type": "string"},
+                {"name": "locale", "description": "The locale context.", "type": "string"}
+            ]
+        },
+        {
+            "path": "/catalogs/{catalog_id}/shared_product_options/{option_id}/values/{id}",
+            "description": "Action to retrieve a specific value for a shared product option within a catalog.",
+            "params": [
+                {"name": "catalog_id", "description": "The ID of the catalog.", "type": "string"},
+                {"name": "option_id", "description": "The ID of the shared product option.", "type": "string"},
+                {"name": "id", "description": "The ID of the option value.", "type": "string"},
+                {"name": "locale", "description": "The locale context.", "type": "string"}
+            ]
+        },
+        {
+            "path": "/catalogs/{catalog_id}/shared_variation_attributes",
+            "description": "Action to retrieve shared variation attributes for a specific catalog.",
+            "params": [
+                {"name": "catalog_id", "description": "The ID of the catalog.", "type": "string"},
+                {"name": "locale", "description": "The locale context.", "type": "string"}
+            ]
+        },
+        {
+            "path": "/catalogs/{catalog_id}/shared_variation_attributes/{attribute_id}/values",
+            "description": "Action to retrieve values for a specific shared variation attribute within a catalog.",
+            "params": [
+                {"name": "catalog_id", "description": "The ID of the catalog.", "type": "string"},
+                {"name": "attribute_id", "description": "The ID of the shared variation attribute.", "type": "string"},
+                {"name": "locale", "description": "The locale context.", "type": "string"}
+            ]
+        },
+        {
+            "path": "/catalogs/{catalog_id}/shared_variation_attributes/{attribute_id}/values/{id}",
+            "description": "Action to retrieve a specific value for a shared variation attribute within a catalog.",
+            "params": [
+                {"name": "catalog_id", "description": "The ID of the catalog.", "type": "string"},
+                {"name": "attribute_id", "description": "The ID of the shared variation attribute.", "type": "string"},
+                {"name": "id", "description": "The ID of the attribute value.", "type": "string"},
+                {"name": "locale", "description": "The locale context.", "type": "string"}
+            ]
+        },
+        {
+            "path": "/catalogs/{catalog_id}/shared_variation_attributes/{id}",
+            "description": "Action to retrieve a specific shared variation attribute by ID for a catalog.",
+            "params": [
+                {"name": "catalog_id", "description": "The ID of the catalog.", "type": "string"},
+                {"name": "id", "description": "The ID of the shared variation attribute.", "type": "string"},
+                {"name": "locale", "description": "The locale context.", "type": "string"}
+            ]
+        },
+        {
+            "path": "/code_versions",
+            "description": "Action to retrieve a list of all code versions.",
+            "params": []
+        },
+        {
+            "path": "/code_versions/{code_version_id}",
+            "description": "Action to retrieve details for a specific code version.",
+            "params": [
+                {"name": "code_version_id", "description": "The ID of the code version.", "type": "string"}
+            ]
+        },
+        {
+            "path": "/custom_object_definitions/{object_type}/attribute_definitions",
+            "description": "Action to retrieve attribute definitions for a specific custom object type.",
+            "params": [
+                {"name": "object_type", "description": "The type of the custom object.", "type": "string"}
+            ]
+        },
+        {
+            "path": "/custom_object_definitions/{object_type}/attribute_definitions/{id}",
+            "description": "Action to retrieve a specific attribute definition for a custom object type.",
+            "params": [
+                {"name": "object_type", "description": "The type of the custom object.", "type": "string"},
+                {"name": "id", "description": "The ID of the attribute definition.", "type": "string"}
+            ]
+        },
+        {
+            "path": "/custom_object_definitions/{object_type}/attribute_groups",
+            "description": "Action to retrieve attribute groups for a specific custom object type.",
+            "params": [
+                {"name": "object_type", "description": "The type of the custom object.", "type": "string"}
+            ]
+        },
+        {
+            "path": "/custom_object_definitions/{object_type}/attribute_groups/{id}",
+            "description": "Action to retrieve a specific attribute group for a custom object type.",
+            "params": [
+                {"name": "object_type", "description": "The type of the custom object.", "type": "string"},
+                {"name": "id", "description": "The ID of the attribute group.", "type": "string"}
+            ]
+        },
+        {
+            "path": "/custom_objects/{object_type}/{key}",
+            "description": "Action to retrieve a specific custom object by type and key.",
+            "params": [
+                {"name": "object_type", "description": "The type of the custom object.", "type": "string"},
+                {"name": "key", "description": "The key of the custom object.", "type": "string"},
+                {"name": "locale", "description": "The locale context.", "type": "string"}
+            ]
+        },
+        {
+            "path": "/customer_lists/{list_id}",
+            "description": "Action to retrieve details for a specific customer list.",
+            "params": [
+                {"name": "list_id", "description": "The ID of the customer list.", "type": "string"}
+            ]
+        },
+        {
+            "path": "/customer_lists/{list_id}/customers/{customer_no}",
+            "description": "Action to retrieve a specific customer from a customer list.",
+            "params": [
+                {"name": "list_id", "description": "The ID of the customer list.", "type": "string"},
+                {"name": "customer_no", "description": "The customer number.", "type": "string"}
+            ]
+        },
+        {
+            "path": "/customer_lists/{list_id}/customers/{customer_no}/addresses",
+            "description": "Action to retrieve addresses for a specific customer in a customer list.",
+            "params": [
+                {"name": "list_id", "description": "The ID of the customer list.", "type": "string"},
+                {"name": "customer_no", "description": "The customer number.", "type": "string"}
+            ]
+        },
+        {
+            "path": "/customer_lists/{list_id}/customers/{customer_no}/addresses/{address_id}",
+            "description": "Action to retrieve a specific address for a customer in a customer list.",
+            "params": [
+                {"name": "list_id", "description": "The ID of the customer list.", "type": "string"},
+                {"name": "customer_no", "description": "The customer number.", "type": "string"},
+                {"name": "address_id", "description": "The ID of the address.", "type": "string"}
+            ]
+        },
+        {
+            "path": "/global_preferences/preference_groups/{group_id}/{instance_type}",
+            "description": "Action to retrieve global preferences for a specific group and instance type.",
+            "params": [
+                {"name": "group_id", "description": "The ID of the preference group.", "type": "string"},
+                {"name": "instance_type", "description": "The instance type (e.g., site, organization).", "type": "string"}
+            ]
+        },
+        {
+            "path": "/inventory_lists",
+            "description": "Action to retrieve a list of all inventory lists.",
+            "params": []
+        },
+        {
+            "path": "/inventory_lists/{id}",
+            "description": "Action to retrieve details for a specific inventory list.",
+            "params": [
+                {"name": "id", "description": "The ID of the inventory list.", "type": "string"}
+            ]
+        },
+        {
+            "path": "/inventory_lists/{inventory_list_id}/product_inventory_records",
+            "description": "Action to retrieve product inventory records for a specific inventory list.",
+            "params": [
+                {"name": "inventory_list_id", "description": "The ID of the inventory list.", "type": "string"}
+            ]
+        },
+        {
+            "path": "/inventory_lists/{inventory_list_id}/product_inventory_records/{product_id}",
+            "description": "Action to retrieve the inventory record for a specific product within an inventory list.",
+            "params": [
+                {"name": "inventory_list_id", "description": "The ID of the inventory list.", "type": "string"},
+                {"name": "product_id", "description": "The ID of the product.", "type": "string"}
+            ]
+        },
+        {
+            "path": "/jobs/{job_id}/executions/{id}",
+            "description": "Action to retrieve details for a specific execution of a job.",
+            "params": [
+                {"name": "job_id", "description": "The ID of the job.", "type": "string"},
+                {"name": "id", "description": "The ID of the job execution.", "type": "string"}
+            ]
+        },
+        {
+            "path": "/libraries/{library_id}/content/{content_id}",
+            "description": "Action to retrieve specific content from a library.",
+            "params": [
+                {"name": "library_id", "description": "The ID of the library.", "type": "string"},
+                {"name": "content_id", "description": "The ID of the content item.", "type": "string"},
+                {"name": "locale", "description": "The locale context.", "type": "string"}
+            ]
+        },
+        {
+            "path": "/libraries/{library_id}/content/{content_id}/folders",
+            "description": "Action to retrieve folders associated with a specific content item in a library.",
+            "params": [
+                {"name": "library_id", "description": "The ID of the library.", "type": "string"},
+                {"name": "content_id", "description": "The ID of the content item.", "type": "string"}
+            ]
+        },
+        {
+            "path": "/libraries/{library_id}/folder_assignments/{content_id}/{folder_id}",
+            "description": "Action to retrieve assignment details of a content item to a folder within a library.",
+            "params": [
+                {"name": "library_id", "description": "The ID of the library.", "type": "string"},
+                {"name": "content_id", "description": "The ID of the content item.", "type": "string"},
+                {"name": "folder_id", "description": "The ID of the folder.", "type": "string"}
+            ]
+        },
+        {
+            "path": "/libraries/{library_id}/folders/{folder_id}",
+            "description": "Action to retrieve details for a specific folder within a library.",
+            "params": [
+                {"name": "library_id", "description": "The ID of the library.", "type": "string"},
+                {"name": "folder_id", "description": "The ID of the folder.", "type": "string"},
+                    {"name": "locale", "description": "The locale context.", "type": "string"}
+            ]
+        },
+        {
+            "path": "/libraries/{library_id}/folders/{folder_id}/content",
+            "description": "Action to retrieve content items within a specific folder in a library.",
+            "params": [
+                {"name": "library_id", "description": "The ID of the library.", "type": "string"},
+                {"name": "folder_id", "description": "The ID of the folder.", "type": "string"},
+                    {"name": "locale", "description": "The locale context.", "type": "string"}
+            ]
+        },
+        {
+            "path": "/libraries/{library_id}/folders/{folder_id}/sub_folders",
+            "description": "Action to retrieve sub-folders within a specific folder in a library.",
+            "params": [
+                {"name": "library_id", "description": "The ID of the library.", "type": "string"},
+                {"name": "folder_id", "description": "The ID of the folder.", "type": "string"},
+                    {"name": "locale", "description": "The locale context.", "type": "string"}
+            ]
+        },
+        {
+            "path": "/locale_info/locales",
+            "description": "Action to retrieve information about available locales.",
+            "params": []
+        },
+        {
+            "path": "/log_requests/ecdn/{id}",
+            "description": "Action to retrieve ECDN log request details.",
+            "params": [
+                {"name": "id", "description": "The ID of the ECDN log request.", "type": "string"}
+            ]
+        },
+        {
+            "path": "/metrics/{apitype}",
+            "description": "Action to retrieve metrics for a specific API type.",
+            "params": [
+                {"name": "apitype", "description": "The type of API (e.g., ocapi, scapi).", "type": "string"}
+            ]
+        },
+        {
+            "path": "/ocapi_configs/{clientId}",
+            "description": "Action to retrieve OCAPI configuration for a specific client ID.",
+            "params": [
+                {"name": "clientId", "description": "The client ID.", "type": "string"}
+            ]
+        },
+        {
+            "path": "/permissions",
+            "description": "Action to retrieve overall permission information.",
+            "params": []
+        },
+        {
+            "path": "/permissions/bm",
+            "description": "Action to retrieve Business Manager (BM) permissions.",
+            "params": []
+        },
+        {
+            "path": "/permissions/bm/functional",
+            "description": "Action to retrieve functional Business Manager (BM) permissions.",
+            "params": []
+        },
+        {
+            "path": "/permissions/bm/locale",
+            "description": "Action to retrieve locale-specific Business Manager (BM) permissions.",
+            "params": []
+        },
+        {
+            "path": "/permissions/bm/module",
+            "description": "Action to retrieve module-specific Business Manager (BM) permissions.",
+            "params": []
+        },
+        {
+            "path": "/permissions/bm/webdav",
+            "description": "Action to retrieve WebDAV Business Manager (BM) permissions.",
+            "params": []
+        },
+        {
+            "path": "/permissions/csc",
+            "description": "Action to retrieve Customer Service Center (CSC) permissions.",
+            "params": []
+        },
+        {
+            "path": "/permissions/csc/module",
+            "description": "Action to retrieve module-specific Customer Service Center (CSC) permissions.",
+            "params": []
+        },
+        {
+            "path": "/products/{id}",
+            "description": "Action to retrieve details for a specific product.",
+            "params": [
+                {"name": "id", "description": "The ID of the product.", "type": "string", "required": true},
+                {"name": "expand", "description": "Comma-separated list of resources to expand (e.g., images, prices).", "type": "string", "required": false},
+                {"name": "inventory_ids", "description": "Comma-separated list of inventory list IDs.", "type": "string", "required": false},
+                {"name": "currency", "description": "The currency code.", "type": "string", "required": false},
+                {"name": "locale", "description": "The locale context.", "type": "string", "required": false},
+                {"name": "all_images", "description": "Flag to retrieve all images.", "type": "boolean", "required": false}
+            ]
+        },
+        {
+            "path": "/products/{master_product_id}/variation_groups",
+            "description": "Action to retrieve variation groups for a master product.",
+            "params": [
+                {"name": "master_product_id", "description": "The ID of the master product.", "type": "string"},
+                {"name": "locale", "description": "The locale context.", "type": "string"}
+            ]
+        },
+        {
+            "path": "/products/{master_product_id}/variation_groups/{id}",
+            "description": "Action to retrieve a specific variation group for a master product.",
+            "params": [
+                {"name": "master_product_id", "description": "The ID of the master product.", "type": "string"},
+                {"name": "id", "description": "The ID of the variation group.", "type": "string"},
+                {"name": "locale", "description": "The locale context.", "type": "string"}
+            ]
+        },
+        {
+            "path": "/products/{master_product_id}/variations",
+            "description": "Action to retrieve variations for a master product.",
+            "params": [
+                {"name": "master_product_id", "description": "The ID of the master product.", "type": "string"},
+                {"name": "locale", "description": "The locale context.", "type": "string"}
+            ]
+        },
+        {
+            "path": "/products/{master_product_id}/variations/{id}",
+            "description": "Action to retrieve a specific variation for a master product.",
+            "params": [
+                {"name": "master_product_id", "description": "The ID of the master product.", "type": "string"},
+                {"name": "id", "description": "The ID of the variation product.", "type": "string"},
+                {"name": "locale", "description": "The locale context.", "type": "string"}
+            ]
+        },
+        {
+            "path": "/products/{product_id}/product_options",
+            "description": "Action to retrieve product options for a specific product.",
+            "params": [
+                {"name": "product_id", "description": "The ID of the product.", "type": "string"},
+                {"name": "locale", "description": "The locale context.", "type": "string"}
+            ]
+        },
+        {
+            "path": "/products/{product_id}/product_options/{id}",
+            "description": "Action to retrieve a specific product option by ID for a product.",
+            "params": [
+                {"name": "product_id", "description": "The ID of the product.", "type": "string"},
+                {"name": "id", "description": "The ID of the product option.", "type": "string"},
+                {"name": "locale", "description": "The locale context.", "type": "string"}
+            ]
+        },
+        {
+            "path": "/products/{product_id}/product_options/{option_id}/values",
+            "description": "Action to retrieve values for a specific product option.",
+            "params": [
+                {"name": "product_id", "description": "The ID of the product.", "type": "string"},
+                {"name": "option_id", "description": "The ID of the product option.", "type": "string"},
+                {"name": "locale", "description": "The locale context.", "type": "string"}
+            ]
+        },
+        {
+            "path": "/products/{product_id}/product_options/{option_id}/values/{id}",
+            "description": "Action to retrieve a specific value for a product option.",
+            "params": [
+                {"name": "product_id", "description": "The ID of the product.", "type": "string"},
+                {"name": "option_id", "description": "The ID of the product option.", "type": "string"},
+                {"name": "id", "description": "The ID of the option value.", "type": "string"},
+                {"name": "locale", "description": "The locale context.", "type": "string"}
+            ]
+        },
+        {
+            "path": "/products/{product_id}/variation_attributes",
+            "description": "Action to retrieve variation attributes for a specific product.",
+            "params": [
+                {"name": "product_id", "description": "The ID of the product.", "type": "string"},
+                {"name": "locale", "description": "The locale context.", "type": "string"}
+            ]
+        },
+        {
+            "path": "/products/{product_id}/variation_attributes/{attribute_id}/values",
+            "description": "Action to retrieve values for a specific variation attribute of a product.",
+            "params": [
+                {"name": "product_id", "description": "The ID of the product.", "type": "string"},
+                {"name": "attribute_id", "description": "The ID of the variation attribute.", "type": "string"},
+                {"name": "locale", "description": "The locale context.", "type": "string"}
+            ]
+        },
+        {
+            "path": "/products/{product_id}/variation_attributes/{attribute_id}/values/{id}",
+            "description": "Action to retrieve a specific value for a variation attribute of a product.",
+            "params": [
+                {"name": "product_id", "description": "The ID of the product.", "type": "string"},
+                {"name": "attribute_id", "description": "The ID of the variation attribute.", "type": "string"},
+                {"name": "id", "description": "The ID of the attribute value.", "type": "string"},
+                {"name": "locale", "description": "The locale context.", "type": "string"}
+            ]
+        },
+        {
+            "path": "/products/{product_id}/variation_attributes/{id}",
+            "description": "Action to retrieve a specific variation attribute by ID for a product.",
+            "params": [
+                {"name": "product_id", "description": "The ID of the product.", "type": "string"},
+                {"name": "id", "description": "The ID of the variation attribute.", "type": "string"},
+                {"name": "locale", "description": "The locale context.", "type": "string"}
+            ]
+        },
+        {
+            "path": "/roles",
+            "description": "Action to retrieve a list of all user roles.",
+            "params": []
+        },
+        {
+            "path": "/roles/{id}",
+            "description": "Action to retrieve details for a specific user role.",
+            "params": [
+                {"name": "id", "description": "The ID of the role.", "type": "string"}
+            ]
+        },
+        {
+            "path": "/roles/{id}/permissions",
+            "description": "Action to retrieve permissions associated with a specific user role.",
+            "params": [
+                {"name": "id", "description": "The ID of the role.", "type": "string"}
+            ]
+        },
+        {
+            "path": "/roles/{id}/users",
+            "description": "Action to retrieve users assigned to a specific role.",
+            "params": [
+                {"name": "id", "description": "The ID of the role.", "type": "string"}
+            ]
+        },
+        {
+            "path": "/settings/logging/custom",
+            "description": "Action to retrieve custom logging settings.",
+            "params": []
+        },
+        {
+            "path": "/site_preferences/preference_groups/{group_id}/{instance_type}/preferences/{preference_id}",
+            "description": "Action to retrieve a specific site preference within a group and instance type.",
+            "params": [
+                {"name": "group_id", "description": "The ID of the preference group.", "type": "string"},
+                {"name": "instance_type", "description": "The instance type (e.g., site).", "type": "string"},
+                {"name": "preference_id", "description": "The ID of the preference.", "type": "string"},
+                {"name": "locale", "description": "The locale context.", "type": "string"}
+            ]
+        },
+        {
+            "path": "/sites",
+            "description": "Action to retrieve a list of all sites.",
+            "params": []
+        },
+        {
+            "path": "/sites/{site_id}",
+            "description": "Action to retrieve details for a specific site.",
+            "params": [
+                {"name": "site_id", "description": "The ID of the site.", "type": "string"}
+            ]
+        },
+        {
+            "path": "/sites/{site_id}/ab_tests",
+            "description": "Action to retrieve A/B tests for a specific site.",
+            "params": [
+                {"name": "site_id", "description": "The ID of the site.", "type": "string"}
+            ]
+        },
+        {
+            "path": "/sites/{site_id}/ab_tests/{id}",
+            "description": "Action to retrieve details for a specific A/B test on a site.",
+            "params": [
+                {"name": "site_id", "description": "The ID of the site.", "type": "string"},
+                {"name": "id", "description": "The ID of the A/B test.", "type": "string"}
+            ]
+        },
+        {
+            "path": "/sites/{site_id}/ab_tests/{id}/segments/{segment_id}",
+            "description": "Action to retrieve a specific segment within an A/B test on a site.",
+            "params": [
+                {"name": "site_id", "description": "The ID of the site.", "type": "string"},
+                {"name": "id", "description": "The ID of the A/B test.", "type": "string"},
+                {"name": "segment_id", "description": "The ID of the segment.", "type": "string"}
+            ]
+        },
+        {
+            "path": "/sites/{site_id}/ai/recommender_names",
+            "description": "Action to retrieve AI recommender names for a specific site.",
+            "params": [
+                {"name": "site_id", "description": "The ID of the site.", "type": "string"}
+            ]
+        },
+        {
+            "path": "/sites/{site_id}/campaigns/{campaign_id}",
+            "description": "Action to retrieve details for a specific campaign on a site.",
+            "params": [
+                {"name": "site_id", "description": "The ID of the site.", "type": "string"},
+                {"name": "campaign_id", "description": "The ID of the campaign.", "type": "string"},
+                {"name": "locale", "description": "The locale context.", "type": "string"}
+            ]
+        },
+        {
+            "path": "/sites/{site_id}/coupons",
+            "description": "Action to retrieve coupons for a specific site.",
+            "params": [
+                {"name": "site_id", "description": "The ID of the site.", "type": "string"}
+            ]
+        },
+        {
+            "path": "/sites/{site_id}/coupons/{coupon_id}",
+            "description": "Action to retrieve details for a specific coupon on a site.",
+            "params": [
+                {"name": "site_id", "description": "The ID of the site.", "type": "string"},
+                {"name": "coupon_id", "description": "The ID of the coupon.", "type": "string"}
+            ]
+        },
+        {
+            "path": "/sites/{site_id}/coupons/{coupon_id}/campaigns",
+            "description": "Action to retrieve campaigns associated with a specific coupon on a site.",
+            "params": [
+                {"name": "site_id", "description": "The ID of the site.", "type": "string"},
+                {"name": "coupon_id", "description": "The ID of the coupon.", "type": "string"}
+            ]
+        },
+        {
+            "path": "/sites/{site_id}/coupons/{coupon_id}/campaigns/{campaign_id}/promotions",
+            "description": "Action to retrieve promotions within a campaign associated with a coupon on a site.",
+            "params": [
+                {"name": "site_id", "description": "The ID of the site.", "type": "string"},
+                {"name": "coupon_id", "description": "The ID of the coupon.", "type": "string"},
+                {"name": "campaign_id", "description": "The ID of the campaign.", "type": "string"},
+                {"name": "locale", "description": "The locale context.", "type": "string"}
+            ]
+        },
+        {
+            "path": "/sites/{site_id}/coupons/{coupon_id}/codes",
+            "description": "Action to retrieve codes associated with a specific coupon on a site.",
+            "params": [
+                {"name": "site_id", "description": "The ID of the site.", "type": "string"},
+                {"name": "coupon_id", "description": "The ID of the coupon.", "type": "string"}
+            ]
+        },
+        {
+            "path": "/sites/{site_id}/coupons/{coupon_id}/promotions",
+            "description": "Action to retrieve promotions associated with a specific coupon on a site.",
+            "params": [
+                {"name": "site_id", "description": "The ID of the site.", "type": "string"},
+                {"name": "coupon_id", "description": "The ID of the coupon.", "type": "string"},
+                {"name": "locale", "description": "The locale context.", "type": "string"}
+            ]
+        },
+        {
+            "path": "/sites/{site_id}/custom_objects/{object_type}/{key}",
+            "description": "Action to retrieve a site-specific custom object by type and key.",
+            "params": [
+                {"name": "site_id", "description": "The ID of the site.", "type": "string"},
+                {"name": "object_type", "description": "The type of the custom object.", "type": "string"},
+                {"name": "key", "description": "The key of the custom object.", "type": "string"},
+                {"name": "locale", "description": "The locale context.", "type": "string"}
+            ]
+        },
+        {
+            "path": "/sites/{site_id}/customer_groups",
+            "description": "Action to retrieve customer groups for a specific site.",
+            "params": [
+                {"name": "site_id", "description": "The ID of the site.", "type": "string"}
+            ]
+        },
+        {
+            "path": "/sites/{site_id}/customer_groups/{id}",
+            "description": "Action to retrieve details for a specific customer group on a site.",
+            "params": [
+                {"name": "site_id", "description": "The ID of the site.", "type": "string"},
+                {"name": "id", "description": "The ID of the customer group.", "type": "string"}
+            ]
+        },
+        {
+            "path": "/sites/{site_id}/customer_groups/{id}/members",
+            "description": "Action to retrieve members of a specific customer group on a site.",
+            "params": [
+                {"name": "site_id", "description": "The ID of the site.", "type": "string"},
+                {"name": "id", "description": "The ID of the customer group.", "type": "string"}
+            ]
+        },
+        {
+            "path": "/sites/{site_id}/customer_groups/{id}/members/{customer_no}",
+            "description": "Action to retrieve a specific member of a customer group on a site.",
+            "params": [
+                {"name": "site_id", "description": "The ID of the site.", "type": "string"},
+                {"name": "id", "description": "The ID of the customer group.", "type": "string"},
+                {"name": "customer_no", "description": "The customer number.", "type": "string"}
+            ]
+        },
+        {
+            "path": "/sites/{site_id}/gift_certificates",
+            "description": "Action to retrieve gift certificates for a specific site.",
+            "params": [
+                {"name": "site_id", "description": "The ID of the site.", "type": "string"}
+            ]
+        },
+        {
+            "path": "/sites/{site_id}/gift_certificates/{merchant_id}",
+            "description": "Action to retrieve a specific gift certificate by merchant ID for a site.",
+            "params": [
+                {"name": "site_id", "description": "The ID of the site.", "type": "string"},
+                {"name": "merchant_id", "description": "The merchant ID of the gift certificate.", "type": "string"}
+            ]
+        },
+        {
+            "path": "/sites/{site_id}/locale_info/locales",
+            "description": "Action to retrieve locale information specific to a site.",
+            "params": [
+                {"name": "site_id", "description": "The ID of the site.", "type": "string"}
+            ]
+        },
+        {
+            "path": "/sites/{site_id}/promotions/{id}",
+            "description": "Action to retrieve details for a specific promotion on a site.",
+            "params": [
+                {"name": "site_id", "description": "The ID of the site.", "type": "string"},
+                {"name": "id", "description": "The ID of the promotion.", "type": "string"},
+                {"name": "locale", "description": "The locale context.", "type": "string"}
+            ]
+        },
+        {
+            "path": "/sites/{site_id}/site_preferences/preference_groups/{group_id}/{instance_type}",
+            "description": "Action to retrieve site preferences for a specific group and instance type.",
+            "params": [
+                {"name": "site_id", "description": "The ID of the site.", "type": "string"},
+                {"name": "group_id", "description": "The ID of the preference group.", "type": "string"},
+                {"name": "instance_type", "description": "The instance type (e.g., site).", "type": "string"},
+                {"name": "locale", "description": "The locale context.", "type": "string"}
+            ]
+        },
+        {
+            "path": "/sites/{site_id}/slot_configurations",
+            "description": "Action to retrieve slot configurations for a specific site.",
+            "params": [
+                {"name": "site_id", "description": "The ID of the site.", "type": "string"},
+                {"name": "locale", "description": "The locale context.", "type": "string"}
+            ]
+        },
+        {
+            "path": "/sites/{site_id}/slots",
+            "description": "Action to retrieve slots for a specific site.",
+            "params": [
+                {"name": "site_id", "description": "The ID of the site.", "type": "string"}
+            ]
+        },
+        {
+            "path": "/sites/{site_id}/slots/{slot_id}/slot_configurations/{configuration_id}",
+            "description": "Action to retrieve a specific slot configuration for a slot on a site.",
+            "params": [
+                {"name": "site_id", "description": "The ID of the site.", "type": "string"},
+                {"name": "slot_id", "description": "The ID of the slot.", "type": "string"},
+                {"name": "configuration_id", "description": "The ID of the slot configuration.", "type": "string"},
+                {"name": "locale", "description": "The locale context.", "type": "string"}
+            ]
+        },
+        {
+            "path": "/sites/{site_id}/slots/{slot_id}/{context_type}",
+            "description": "Action to retrieve slot information based on context type for a site.",
+            "params": [
+                {"name": "site_id", "description": "The ID of the site.", "type": "string"},
+                {"name": "slot_id", "description": "The ID of the slot.", "type": "string"},
+                {"name": "context_type", "description": "The context type (e.g., category, folder).", "type": "string"},
+                {"name": "locale", "description": "The locale context.", "type": "string"}
+            ]
+        },
+        {
+            "path": "/sites/{site_id}/source_code_groups",
+            "description": "Action to retrieve source code groups for a specific site.",
+            "params": [
+                {"name": "site_id", "description": "The ID of the site.", "type": "string"}
+            ]
+        },
+        {
+            "path": "/sites/{site_id}/source_code_groups/{id}",
+            "description": "Action to retrieve details for a specific source code group on a site.",
+            "params": [
+                {"name": "site_id", "description": "The ID of the site.", "type": "string"},
+                {"name": "id", "description": "The ID of the source code group.", "type": "string"}
+            ]
+        },
+        {
+            "path": "/sites/{site_id}/stores",
+            "description": "Action to retrieve stores for a specific site.",
+            "params": [
+                {"name": "site_id", "description": "The ID of the site.", "type": "string"},
+                {"name": "latitude", "description": "Latitude for store search.", "type": "number"},
+                {"name": "longitude", "description": "Longitude for store search.", "type": "number"},
+                {"name": "radius", "description": "Search radius.", "type": "number"},
+                {"name": "radius_unit", "description": "Unit for radius (e.g., km, mi).", "type": "string"}
+            ]
+        },
+        {
+            "path": "/sites/{site_id}/stores/{id}",
+            "description": "Action to retrieve details for a specific store on a site.",
+            "params": [
+                {"name": "site_id", "description": "The ID of the site.", "type": "string"},
+                {"name": "id", "description": "The ID of the store.", "type": "string"}
+            ]
+        },
+        {
+            "path": "/system_object_definitions",
+            "description": "Action to retrieve a list of all system object definitions.",
+            "params": []
+        },
+        {
+            "path": "/system_object_definitions/{object_type}",
+            "description": "Action to retrieve the definition for a specific system object type.",
+            "params": [
+                {"name": "object_type", "description": "The type of the system object.", "type": "string"},
+                {"name": "locale", "description": "The locale context.", "type": "string"}
+            ]
+        },
+        {
+            "path": "/system_object_definitions/{object_type}/attribute_definitions",
+            "description": "Action to retrieve attribute definitions for a specific system object type.",
+            "params": [
+                {"name": "object_type", "description": "The type of the system object.", "type": "string"},
+                    {"name": "locale", "description": "The locale context.", "type": "string"}
+            ]
+        },
+        {
+            "path": "/system_object_definitions/{object_type}/attribute_definitions/{id}",
+            "description": "Action to retrieve a specific attribute definition for a system object type.",
+            "params": [
+                {"name": "object_type", "description": "The type of the system object.", "type": "string"},
+                {"name": "id", "description": "The ID of the attribute definition.", "type": "string"},
+                    {"name": "locale", "description": "The locale context.", "type": "string"}
+            ]
+        },
+        {
+            "path": "/system_object_definitions/{object_type}/attribute_groups",
+            "description": "Action to retrieve attribute groups for a specific system object type.",
+            "params": [
+                {"name": "object_type", "description": "The type of the system object.", "type": "string"},
+                    {"name": "locale", "description": "The locale context.", "type": "string"}
+            ]
+        },
+        {
+            "path": "/system_object_definitions/{object_type}/attribute_groups/{id}",
+            "description": "Action to retrieve a specific attribute group for a system object type.",
+            "params": [
+                {"name": "object_type", "description": "The type of the system object.", "type": "string"},
+                {"name": "id", "description": "The ID of the attribute group.", "type": "string"},
+                    {"name": "locale", "description": "The locale context.", "type": "string"}
+            ]
+        },
+        {
+            "path": "/users",
+            "description": "Action to retrieve a list of users (requires specific permissions).",
+            "params": []
+        },
+        {
+            "path": "/users/this",
+            "description": "Action to retrieve details for the currently authenticated user.",
+            "params": []
+        },
+        {
+            "path": "/users/{login}",
+            "description": "Action to retrieve details for a specific user by login.",
+            "params": [
+                {"name": "login", "description": "The login ID of the user.", "type": "string"}
+            ]
+        },
+        {
+            "path": "/users/{login}/access_key/{scope}",
+            "description": "Action to retrieve an access key for a specific user and scope.",
+            "params": [
+                {"name": "login", "description": "The login ID of the user.", "type": "string"},
+                {"name": "scope", "description": "The requested scope for the access key.", "type": "string"}
+            ]
+        }
+    ]
+  }

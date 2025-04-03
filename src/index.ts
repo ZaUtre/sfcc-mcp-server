@@ -133,6 +133,7 @@ interface EndpointParam {
   name: string;
   description: string;
   type: string;
+  required: boolean;
 }
 
 interface Endpoint {
@@ -194,13 +195,22 @@ endpoints.forEach(endpoint => {
   // Create the tool schema
   const toolSchema: Record<string, any> = {};
   endpoint.params.forEach(param => {
-    toolSchema[param.name] = z.string().describe(param.description);
+    if (param.required) {
+      toolSchema[param.name] = z.string().describe(param.description);
+    } else {
+      toolSchema[param.name] = z.string().optional().describe(param.description);
+    }
   });
   
   // Create the tool handler
   const toolHandler = async (input: Record<string, string>) => {
     try {
-      const data = await handleSFCCRequest(endpoint, input);
+      // Filter out undefined or empty optional parameters
+      const filteredParams = Object.fromEntries(
+        Object.entries(input).filter(([_, value]) => value !== undefined && value !== '')
+      );
+      
+      const data = await handleSFCCRequest(endpoint, filteredParams);
       return {
         content: [
           {
