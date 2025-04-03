@@ -8,10 +8,6 @@ import fetch from "node-fetch";
 // Load environment variables
 config();
 
-// Shopper API credentials
-const SFCC_CLIENT_ID = process.env.SFCC_CLIENT_ID || "";
-const SFCC_CLIENT_SECRET = process.env.SFCC_CLIENT_SECRET || "";
-
 // Admin API credentials (separate client)
 const SFCC_ADMIN_CLIENT_ID = process.env.SFCC_ADMIN_CLIENT_ID || "";
 const SFCC_ADMIN_CLIENT_SECRET = process.env.SFCC_ADMIN_CLIENT_SECRET || "";
@@ -29,20 +25,14 @@ const server = new McpServer({
   version: "1.0.0",
 });
 
-// API types
-enum ApiType {
-  SHOPPER = 'shopper',
-  ADMIN = 'admin'
-}
-
 // Create basic client config based on API type
-const getBaseClientConfig = (apiType: ApiType = ApiType.SHOPPER): ClientConfig => {
+const getBaseClientConfig = (): ClientConfig => {
   return {
     headers: {
       "User-Agent": USER_AGENT,
     },
     parameters: {
-      clientId: apiType === ApiType.ADMIN ? SFCC_ADMIN_CLIENT_ID : SFCC_CLIENT_ID,
+      clientId:  SFCC_ADMIN_CLIENT_ID,
       organizationId: SFCC_ORGANIZATION_ID,
       shortCode: SFCC_SHORT_CODE,
       siteId: SFCC_SITE_ID,
@@ -50,37 +40,14 @@ const getBaseClientConfig = (apiType: ApiType = ApiType.SHOPPER): ClientConfig =
   };
 };
 
-// Get authentication token for SFCC Shopper APIs using SLAS
-async function getShopperAuthToken() {
-  try {
-    // Create base config for shopper APIs
-    const clientConfig = getBaseClientConfig(ApiType.SHOPPER);
-    
-    // Create ShopperLogin client for authentication
-    const shopperLoginClient = new Customer.ShopperLogin(clientConfig);
-    
-    // Get guest user token
-    const token = await slasHelpers.loginGuestUser(shopperLoginClient, {
-      redirectURI: "http://localhost:3000/callback" // not used server-side but required
-    });
-    
-    return token.access_token;
-  } catch (error) {
-    console.error("Error getting shopper auth token:", error);
-    throw error;
-  }
-}
-
-// Get authentication token for SFCC Admin APIs using Client Credentials
-async function getAdminAuthToken() {
+// Get authentication token for SFCC OCAPI using Client Credentials
+async function getAuthToken() {
   try {
     // Check if admin credentials are available
     if (!SFCC_ADMIN_CLIENT_ID || !SFCC_ADMIN_CLIENT_SECRET) {
       throw new Error("Admin API client credentials not configured. Please set SFCC_ADMIN_CLIENT_ID and SFCC_ADMIN_CLIENT_SECRET in your .env file.");
     }
     
-    // Build the token URL according to the documentation cURL example
-    // This approach has been verified to work with valid credentials
     const tokenUrl = `https://account.demandware.com/dwsso/oauth2/access_token`;
     
     // Create form data for POST request with credentials included (client_secret_post method)
@@ -128,23 +95,13 @@ async function getAdminAuthToken() {
   }
 }
 
-// Get authentication token based on API type
-async function getAuthToken(apiType: ApiType = ApiType.SHOPPER) {
-  return apiType === ApiType.ADMIN ? getAdminAuthToken() : getShopperAuthToken();
-}
-
-// Function to get catalogs using the Admin API
-async function getCatalogs() {
+// Utility function for making GET requests to SFCC API
+async function makeSFCCRequest(endpoint: string) {
   try {
-    // Get admin auth token
-    const accessToken = await getAuthToken(ApiType.ADMIN);
+    const accessToken = await getAuthToken();
+    const url = `${SFCC_API_BASE}/s/-/dw/data/v24_5/${endpoint}`;
     
-    // Construct catalog API URL
-    // https://bcdt-006.dx.commercecloud.salesforce.com/s/-/dw/data/v24_5/catalogs
-    const catalogsUrl = `${SFCC_API_BASE}/s/-/dw/data/v24_5/catalogs`;
-    
-    // Make API request
-    const response = await fetch(catalogsUrl, {
+    const response = await fetch(url, {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${accessToken}`,
@@ -153,94 +110,151 @@ async function getCatalogs() {
       }
     });
     
+    if (!response.ok) {
+      throw new Error(`SFCC API request failed: ${response.status} ${response.statusText}`);
+    }
+    
     return await response.json();
   } catch (error) {
-    console.error("Error fetching catalogs:", error);
-    
+    console.error(`Error making SFCC request to ${endpoint}:`, error);
     throw error;
   }
 }
 
-// Define catalog data type
-interface Catalog {
-  id: string;
-  name?: string;
-  description?: string;
+// Define endpoint structure
+interface EndpointParam {
+  name: string;
+  description: string;
+  type: string;
 }
 
-interface PermissionInfo {
-  error: string;
-  reason: string;
-  resolution_steps?: string[];
+interface Endpoint {
+  path: string;
+  description: string;
+  params: EndpointParam[];
 }
 
-interface CatalogsResponse {
-  data: Catalog[];
-  _permission_info?: PermissionInfo;
+// Define available endpoints
+const endpoints: Endpoint[] = [
+  {
+    path: "/catalogs",
+    description: "Get a list of available catalogs",
+    params: []
+  },
+  {
+    path: "/catalogs/{catalog_id}",
+    description: "Get details of a specific catalog by ID",
+    params: [
+      { name: "catalog_id", description: "The ID of the catalog to retrieve", type: "string" }
+    ]
+  },
+  {
+    path: "/catalogs/{catalog_id}/categories/{category_id}/category_links/{target_catalog_id}/{target_category_id}/{type}",
+    description: "Get category links between categories in different catalogs",
+    params: [
+      { name: "catalog_id", description: "The source catalog ID", type: "string" },
+      { name: "category_id", description: "The source category ID", type: "string" },
+      { name: "target_catalog_id", description: "The target catalog ID", type: "string" },
+      { name: "target_category_id", description: "The target category ID", type: "string" },
+      { name: "type", description: "The type of category link", type: "string" }
+    ]
+  }
+  // Add more endpoints as needed
+];
+
+// Function to replace path parameters with actual values
+function replacePathParams(path: string, params: Record<string, string>): string {
+  let result = path;
+  for (const [key, value] of Object.entries(params)) {
+    result = result.replace(`{${key}}`, value);
+  }
+  return result;
 }
 
-// Add get-catalogs tool
-server.tool(
-  "get-catalogs",
-  "Get a list of available catalogs",
-  {}, // No input parameters needed
-  async () => {
+// Function to create a tool name from an endpoint path
+function createToolName(path: string): string {
+  // Remove leading slash and replace path separators with underscores
+  const name = path.replace(/^\//, '').replace(/\//g, '_');
+  // Replace parameter placeholders with 'by' to create a more readable function name
+  return name.replace(/\{([^}]+)\}/g, 'by_$1');
+}
+
+// Function to handle SFCC API requests
+async function handleSFCCRequest(endpoint: Endpoint, params: Record<string, string>) {
+  const path = replacePathParams(endpoint.path, params);
+  return makeSFCCRequest(path);
+}
+
+// Register tools for each endpoint
+endpoints.forEach(endpoint => {
+  const toolName = createToolName(endpoint.path);
+  
+  // Create the tool schema
+  const toolSchema: Record<string, any> = {};
+  endpoint.params.forEach(param => {
+    toolSchema[param.name] = z.string().describe(param.description);
+  });
+  
+  // Create the tool handler
+  const toolHandler = async (input: Record<string, string>) => {
     try {
-      const catalogsData = await getCatalogs() as CatalogsResponse;
-      
-      if (!catalogsData || !catalogsData.data || catalogsData.data.length === 0) {
-        return {
-          content: [
-            {
-              type: "text",
-              text: "No catalogs found.",
-            },
-          ],
-        };
-      }
-      
-      // Format catalogs information
-      const formattedCatalogs = ["Available Catalogs:"];
-      
-      catalogsData.data.forEach((catalog: Catalog, index: number) => {
-        formattedCatalogs.push(`\n${index + 1}. ID: ${catalog.id}`);
-        
-        if (catalog.name) {
-          formattedCatalogs.push(`   Name: ${catalog.name}`);
-        }
-        
-        if (catalog.description) {
-          formattedCatalogs.push(`   Description: ${catalog.description}`);
-        }
-      });
-      
+      const data = await handleSFCCRequest(endpoint, input);
       return {
         content: [
           {
-            type: "text",
-            text: formattedCatalogs.join("\n"),
+            type: "text" as const,
+            text: JSON.stringify(data),
           },
         ],
       };
     } catch (error) {
-      console.error("Error in get-catalogs tool:", error);
+      console.error(`Error in ${toolName} tool:`, error);
       return {
         content: [
           {
-            type: "text",
-            text: `Error retrieving catalog data. ${error instanceof Error ? error.message : 'Unknown error'}`,
+            type: "text" as const,
+            text: `Error retrieving data. ${error instanceof Error ? error.message : 'Unknown error'}`,
           },
         ],
       };
     }
-  },
-);
+  };
+  
+  // Register the tool
+  server.tool(
+    toolName,
+    endpoint.description,
+    endpoint.params.length > 0 ? toolSchema : {},
+    toolHandler
+  );
+});
 
 async function main() {
-  // Set up stdio transport
-  const transport = new StdioServerTransport();
-  await server.connect(transport);
-  console.error("SFCC Services MCP Server running on stdio");
+  try {
+    // Set up stdio transport
+    const transport = new StdioServerTransport();
+    await server.connect(transport);
+    
+    // Keep the process running
+    process.stdin.resume();
+    
+    // Handle process termination
+    process.on('SIGINT', () => {
+      console.log('Received SIGINT. Shutting down gracefully...');
+      process.exit(0);
+    });
+    
+    process.on('SIGTERM', () => {
+      console.log('Received SIGTERM. Shutting down gracefully...');
+      process.exit(0);
+    });
+    
+    // Log that the server is running (but don't use console.error)
+    process.stdout.write('SFCC Services MCP Server running on stdio\n');
+  } catch (error) {
+    console.error('Error starting server:', error);
+    process.exit(1);
+  }
 }
 
 main().catch((error) => {
