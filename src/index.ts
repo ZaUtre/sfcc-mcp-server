@@ -93,11 +93,9 @@ async function getAuthToken() {
     };
     
     // Log success but not the token itself
-    console.log(`Successfully obtained admin token with scopes: ${tokenData.scope || 'not specified'}`);
     
     return tokenData.access_token;
   } catch (error) {
-    console.error("Error getting admin auth token:", error);
     throw error;
   }
 }
@@ -129,7 +127,6 @@ async function makeSFCCRequest(endpoint: string, queryParams: URLSearchParams) {
     
     return await response.json();
   } catch (error) {
-    console.error(`Error making SFCC request to ${endpoint}:`, error);
     throw error;
   }
 }
@@ -156,7 +153,6 @@ function loadEndpoints(): Endpoint[] {
     const { endpoints } = JSON.parse(endpointsData);
     return endpoints;
   } catch (error) {
-    console.error('Error loading endpoints from JSON file:', error);
     // Return default endpoints if file can't be loaded
     return [
       {
@@ -265,7 +261,6 @@ endpoints.forEach(endpoint => {
         ],
       };
     } catch (error) {
-      console.error(`Error in ${toolName} tool:`, error);
       return {
         content: [
           {
@@ -307,14 +302,11 @@ async function main() {
     });
     
     // Log that the server is running (but don't use console.error)
-    process.stdout.write('SFCC Services MCP Server running on stdio\n');
   } catch (error) {
-    console.error('Error starting server:', error);
     process.exit(1);
   }
 }
 
 main().catch((error) => {
-  console.error("Fatal error in main():", error);
   process.exit(1);
 });
