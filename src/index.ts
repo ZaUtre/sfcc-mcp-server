@@ -103,10 +103,16 @@ async function getAuthToken() {
 }
 
 // Utility function for making GET requests to SFCC API
-async function makeSFCCRequest(endpoint: string) {
+async function makeSFCCRequest(endpoint: string, queryParams: URLSearchParams) {
   try {
     const accessToken = await getAuthToken();
-    const url = `${SFCC_API_BASE}/s/-/dw/data/v24_5/${endpoint}`;
+    let url = `${SFCC_API_BASE}/s/-/dw/data/v24_5/${endpoint}`;
+    
+    // Append query parameters if any exist
+    const queryString = queryParams.toString();
+    if (queryString) {
+      url += `?${queryString}`;
+    }
     
     const response = await fetch(url, {
       method: 'GET',
@@ -173,19 +179,58 @@ function replacePathParams(path: string, params: Record<string, string>): string
   }
   return result;
 }
+// Keep track of used tool names to ensure uniqueness
+const usedToolNames = new Set<string>();
 
 // Function to create a tool name from an endpoint path
 function createToolName(path: string): string {
   // Remove leading slash and replace path separators with underscores
-  const name = path.replace(/^\//, '').replace(/\//g, '_');
+  let name = path.replace(/^\//, '').replace(/\//g, '_');
   // Replace parameter placeholders with 'by' to create a more readable function name
-  return name.replace(/\{([^}]+)\}/g, 'by_$1');
+  name = name.replace(/\{([^}]+)\}/g, 'by_$1');
+  
+  // If name is longer than 60 chars (leaving room for uniqueness suffix), truncate it
+  if (name.length > 60) {
+    // Keep the first 30 and last 30 chars with underscore in between
+    name = `${name.slice(0, 30)}_${name.slice(-29)}`;
+  }
+  
+  // Ensure uniqueness by adding a numeric suffix if needed
+  let uniqueName = name;
+  let counter = 1;
+  while (usedToolNames.has(uniqueName)) {
+    // If adding suffix would make it too long, truncate more
+    const suffix = `_${counter}`;
+    if (name.length + suffix.length > 64) {
+      name = name.slice(0, 64 - suffix.length);
+    }
+    uniqueName = name + suffix;
+    counter++;
+  }
+  
+  // Add to used names set
+  usedToolNames.add(uniqueName);
+  
+  return uniqueName;
 }
 
 // Function to handle SFCC API requests
 async function handleSFCCRequest(endpoint: Endpoint, params: Record<string, string>) {
   const path = replacePathParams(endpoint.path, params);
-  return makeSFCCRequest(path);
+  
+  // Find parameters that weren't used in the path - these are query parameters
+  const queryParams = new URLSearchParams();
+  const pathParamMatches = endpoint.path.match(/\{([^}]+)\}/g) || [];
+  const pathParamNames = pathParamMatches.map(match => match.slice(1, -1));
+  
+  // Add unused parameters as query parameters
+  Object.entries(params).forEach(([key, value]) => {
+    if (!pathParamNames.includes(key)) {
+      queryParams.append(key, value);
+    }
+  });
+  
+  return makeSFCCRequest(path, queryParams);
 }
 
 // Register tools for each endpoint
