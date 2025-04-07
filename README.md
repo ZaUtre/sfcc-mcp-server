@@ -4,9 +4,10 @@ A Model Context Protocol (MCP) server for interacting with Salesforce Commerce C
 
 ## Features
 
-- Get product details using the Shopper Products API
-- Get catalog information using the Admin Catalogs API
-- Simple weather demonstration tool (mock data)
+- Dynamic endpoint registration based on `endpoints.json` configuration
+- Automatic handling of path and query parameters
+- OCAPI authentication using client credentials flow
+- Support for all SFCC GET Data API endpoints
 
 ## Installation
 
@@ -23,41 +24,29 @@ npm run build
 Create a `.env` file in the project root directory with the following variables:
 
 ```
-# SFCC API Configuration - Shared
+# SFCC API Configuration
 SFCC_API_BASE=https://your-instance.api.commercecloud.salesforce.com/
-SFCC_ORGANIZATION_ID=your_org_id
-SFCC_SHORT_CODE=your_instance_id
-SFCC_SITE_ID=your_site_id
-
-# Shopper API Credentials (SLAS authentication)
-SFCC_CLIENT_ID=your_shopper_client_id
-SFCC_CLIENT_SECRET=your_shopper_client_secret
+SFCC_SITE_ID=your_site_id  # optional, defaults to "RefArch"
 
 # Admin API Credentials (Client credentials flow)
 SFCC_ADMIN_CLIENT_ID=your_admin_client_id
 SFCC_ADMIN_CLIENT_SECRET=your_admin_client_secret
 ```
 
-## Admin API Configuration
+## OCAPI Configuration
 
-To use the Catalogs API, you need to configure an API client in SFCC with the proper permissions:
+To use the SFCC Data APIs, you need to configure an API client in SFCC with the proper permissions:
 
 1. In SFCC Business Manager, go to Administration > Site Development > Open Commerce API Settings
 2. Create a new API client or edit an existing one
 3. Configure the OAuth settings:
    - OAuth Client ID: (your client ID)
    - OAuth Client Secret: (your client secret)
-   - Default scopes: Include `sfcc.catalogs.rw`
+   - Default scopes: Include the scopes needed for your endpoints
    - Token Endpoint Auth Method: `client_secret_post`
 4. Configure API client roles:
-   - Assign appropriate roles to access catalog data
-   - Required roles may include "Catalogs Manager" or similar
+   - Assign appropriate roles to access the required data
    
-If you encounter a 403 Forbidden error with the Catalogs API, check that:
-1. The API client has the correct scope (`sfcc.catalogs.rw`)
-2. The API client has the necessary role assignments
-3. The client has access to the specific catalogs in your organization
-4. The organization_id and short_code values are correct
 
 ## Usage
 
@@ -67,52 +56,44 @@ Start the server:
 node build/index.js
 ```
 
-## API Tools
+## Endpoint Configuration
 
-### get-weather
-
-Gets weather information for a location (mock data).
+Endpoints are configured in `src/endpoints.json`. Each endpoint has the following structure:
 
 ```json
 {
-  "type": "request",
-  "id": "123",
-  "toolId": "get-weather",
-  "toolInput": {
-    "location": "San Francisco"
-  }
+    "path": "/your/endpoint/{param}",
+    "description": "Description of what this endpoint does",
+    "params": [
+        {
+            "name": "param",
+            "description": "Description of the parameter",
+            "type": "string",
+            "required": true
+        }
+    ]
 }
 ```
 
-### get-product-by-id
+- `path`: The API endpoint path, with path parameters in curly braces
+- `description`: A description of what the endpoint does
+- `params`: Array of parameter definitions
+  - `name`: Parameter name
+  - `description`: Parameter description
+  - `type`: Parameter type (currently only string)
+  - `required`: Whether the parameter is required
 
-Gets product details by ID.
+Parameters that appear in the path (e.g., `{param}`) are used for path substitution. Other parameters are automatically added as query parameters.
 
-```json
-{
-  "type": "request",
-  "id": "124",
-  "toolId": "get-product-by-id",
-  "toolInput": {
-    "id": "5",
-    "locale": "en_US",
-    "currency": "USD"
-  }
-}
-```
+## Tool Names
 
-### get-catalogs
+Tool names are automatically generated from endpoint paths:
+- Path separators are replaced with underscores
+- Path parameters are replaced with "by_param"
+- Names are truncated to 64 characters if needed
+- Uniqueness is ensured with numeric suffixes if needed
 
-Gets available catalogs.
-
-```json
-{
-  "type": "request",
-  "id": "125",
-  "toolId": "get-catalogs",
-  "toolInput": {}
-}
-```
+Example: `/catalogs/{id}/products` becomes `catalogs_by_id_products`
 
 ## License
 
