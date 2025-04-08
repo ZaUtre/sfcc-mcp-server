@@ -1,32 +1,6 @@
 {
     "endpoints": [
         {
-            "path": "/alerts/descriptors",
-            "description": "Action to retrieve all alert descriptors.",
-            "params": []
-        },
-        {
-            "path": "/alerts/descriptors/{application_id}",
-            "description": "Action to retrieve alert descriptors for a specific application.",
-            "params": [
-            {"name": "application_id", "description": "The ID of the application.", "type": "string"}
-            ]
-        },
-        {
-            "path": "/alerts/descriptors/{application_id}/{application_context_path}/{message_id}",
-            "description": "Action to retrieve a specific alert descriptor message.",
-            "params": [
-            {"name": "application_id", "description": "The ID of the application.", "type": "string"},
-            {"name": "application_context_path", "description": "The context path of the application.", "type": "string"},
-            {"name": "message_id", "description": "The ID of the alert message.", "type": "string"}
-            ]
-        },
-        {
-            "path": "/alerts/usersettings",
-            "description": "Action to retrieve user settings related to alerts.",
-            "params": []
-        },
-        {
             "path": "/catalogs",
             "description": "Action to retrieve a list of all catalogs.",
             "params": [

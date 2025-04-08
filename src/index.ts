@@ -18,11 +18,6 @@ config();
 // Admin API credentials (separate client)
 const SFCC_ADMIN_CLIENT_ID = process.env.SFCC_ADMIN_CLIENT_ID || "";
 const SFCC_ADMIN_CLIENT_SECRET = process.env.SFCC_ADMIN_CLIENT_SECRET || "";
-
-// Shared configuration
-const SFCC_SITE_ID = process.env.SFCC_SITE_ID || "RefArch";
-const SFCC_ORGANIZATION_ID = process.env.SFCC_ORGANIZATION_ID || "";
-const SFCC_SHORT_CODE = process.env.SFCC_SHORT_CODE || "";
 const USER_AGENT = "sfcc-mcp-server/1.0";
 const SFCC_API_BASE = process.env.SFCC_API_BASE;
 
@@ -39,17 +34,16 @@ const getBaseClientConfig = (): ClientConfig => {
       "User-Agent": USER_AGENT,
     },
     parameters: {
-      clientId:  SFCC_ADMIN_CLIENT_ID,
-      organizationId: SFCC_ORGANIZATION_ID,
-      shortCode: SFCC_SHORT_CODE,
-      siteId: SFCC_SITE_ID,
+      clientId:  SFCC_ADMIN_CLIENT_ID
     },
   };
 };
 
 // Get authentication token for SFCC OCAPI using Client Credentials
 async function getAuthToken() {
+  const requestId = process.env.REQUEST_ID || 'default-request';
   try {
+    logToFile(requestId, 'Attempting to obtain authentication token.');
     // Check if admin credentials are available
     if (!SFCC_ADMIN_CLIENT_ID || !SFCC_ADMIN_CLIENT_SECRET) {
       throw new Error("Admin API client credentials not configured. Please set SFCC_ADMIN_CLIENT_ID and SFCC_ADMIN_CLIENT_SECRET in your .env file.");
@@ -93,20 +87,27 @@ async function getAuthToken() {
     };
     
     // Log success but not the token itself
-    console.log(`Successfully obtained admin token with scopes: ${tokenData.scope || 'not specified'}`);
-    
+    logToFile(requestId, 'Authentication token obtained successfully.');
     return tokenData.access_token;
   } catch (error) {
-    console.error("Error getting admin auth token:", error);
+    logToFile(requestId, `Error obtaining authentication token: ${error instanceof Error ? error.message : 'Unknown error'}`);
     throw error;
   }
 }
 
 // Utility function for making GET requests to SFCC API
-async function makeSFCCRequest(endpoint: string) {
+async function makeSFCCRequest(endpoint: string, queryParams: URLSearchParams) {
+  const requestId = process.env.REQUEST_ID || 'default-request';
   try {
+    logToFile(requestId, `Making SFCC API request to endpoint: ${endpoint}`);
     const accessToken = await getAuthToken();
-    const url = `${SFCC_API_BASE}/s/-/dw/data/v24_5/${endpoint}`;
+    let url = `${SFCC_API_BASE}/s/-/dw/data/v24_5/${endpoint}`;
+    
+    // Append query parameters if any exist
+    const queryString = queryParams.toString();
+    if (queryString) {
+      url += `?${queryString}`;
+    }
     
     const response = await fetch(url, {
       method: 'GET',
@@ -121,9 +122,10 @@ async function makeSFCCRequest(endpoint: string) {
       throw new Error(`SFCC API request failed: ${response.status} ${response.statusText}`);
     }
     
+    logToFile(requestId, `SFCC API request to ${endpoint} completed successfully.`);
     return await response.json();
   } catch (error) {
-    console.error(`Error making SFCC request to ${endpoint}:`, error);
+    logToFile(requestId, `Error in SFCC API request to ${endpoint}: ${error instanceof Error ? error.message : 'Unknown error'}`);
     throw error;
   }
 }
@@ -150,7 +152,6 @@ function loadEndpoints(): Endpoint[] {
     const { endpoints } = JSON.parse(endpointsData);
     return endpoints;
   } catch (error) {
-    console.error('Error loading endpoints from JSON file:', error);
     // Return default endpoints if file can't be loaded
     return [
       {
@@ -173,19 +174,67 @@ function replacePathParams(path: string, params: Record<string, string>): string
   }
   return result;
 }
+// Keep track of used tool names to ensure uniqueness
+const usedToolNames = new Set<string>();
 
 // Function to create a tool name from an endpoint path
 function createToolName(path: string): string {
   // Remove leading slash and replace path separators with underscores
-  const name = path.replace(/^\//, '').replace(/\//g, '_');
+  let name = path.replace(/^\//, '').replace(/\//g, '_');
   // Replace parameter placeholders with 'by' to create a more readable function name
-  return name.replace(/\{([^}]+)\}/g, 'by_$1');
+  name = name.replace(/\{([^}]+)\}/g, 'by_$1');
+  
+  // If name is longer than 60 chars (leaving room for uniqueness suffix), truncate it
+  if (name.length > 60) {
+    // Keep the first 30 and last 30 chars with underscore in between
+    name = `${name.slice(0, 30)}_${name.slice(-29)}`;
+  }
+  
+  // Ensure uniqueness by adding a numeric suffix if needed
+  let uniqueName = name;
+  let counter = 1;
+  while (usedToolNames.has(uniqueName)) {
+    // If adding suffix would make it too long, truncate more
+    const suffix = `_${counter}`;
+    if (name.length + suffix.length > 64) {
+      name = name.slice(0, 64 - suffix.length);
+    }
+    uniqueName = name + suffix;
+    counter++;
+  }
+  
+  // Add to used names set
+  usedToolNames.add(uniqueName);
+  
+  return uniqueName;
 }
 
 // Function to handle SFCC API requests
 async function handleSFCCRequest(endpoint: Endpoint, params: Record<string, string>) {
-  const path = replacePathParams(endpoint.path, params);
-  return makeSFCCRequest(path);
+  const requestId = process.env.REQUEST_ID || 'default-request';
+  try {
+    logToFile(requestId, `Handling SFCC request for endpoint: ${endpoint.path}`);
+    const path = replacePathParams(endpoint.path, params);
+  
+    // Find parameters that weren't used in the path - these are query parameters
+    const queryParams = new URLSearchParams();
+    const pathParamMatches = endpoint.path.match(/\{([^}]+)\}/g) || [];
+    const pathParamNames = pathParamMatches.map(match => match.slice(1, -1));
+  
+    // Add unused parameters as query parameters
+    Object.entries(params).forEach(([key, value]) => {
+      if (!pathParamNames.includes(key)) {
+        queryParams.append(key, value);
+      }
+    });
+  
+    const result = await makeSFCCRequest(path, queryParams);
+    logToFile(requestId, `SFCC request for endpoint ${endpoint.path} handled successfully.`);
+    return result;
+  } catch (error) {
+    logToFile(requestId, `Error handling SFCC request for endpoint ${endpoint.path}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    throw error;
+  }
 }
 
 // Register tools for each endpoint
@@ -205,6 +254,7 @@ endpoints.forEach(endpoint => {
   // Create the tool handler
   const toolHandler = async (input: Record<string, string>) => {
     try {
+      const requestId = process.env.REQUEST_ID || 'default-request';
       // Filter out undefined or empty optional parameters
       const filteredParams = Object.fromEntries(
         Object.entries(input).filter(([_, value]) => value !== undefined && value !== '')
@@ -220,7 +270,6 @@ endpoints.forEach(endpoint => {
         ],
       };
     } catch (error) {
-      console.error(`Error in ${toolName} tool:`, error);
       return {
         content: [
           {
@@ -241,35 +290,50 @@ endpoints.forEach(endpoint => {
   );
 });
 
+// Update the logger utility to include request ID in the log file name
+function getLogFilePath(requestId: string): string {
+  return path.join(__dirname, `${requestId}.log`);
+}
+
+function logToFile(requestId: string, message: string) {
+  const logFilePath = getLogFilePath(requestId);
+  const timestamp = new Date().toISOString();
+  const logMessage = `[${timestamp}] ${message}\n`;
+  fs.appendFileSync(logFilePath, logMessage, 'utf8');
+}
+
+// Update main function to include request ID in logs
 async function main() {
+  const requestId = process.env.REQUEST_ID || 'default-request';
   try {
     // Set up stdio transport
     const transport = new StdioServerTransport();
     await server.connect(transport);
-    
+
+    // Log server start
+    logToFile(requestId, 'Server started successfully.');
+
     // Keep the process running
     process.stdin.resume();
-    
+
     // Handle process termination
     process.on('SIGINT', () => {
-      console.log('Received SIGINT. Shutting down gracefully...');
+      logToFile(requestId, 'Received SIGINT. Shutting down gracefully...');
       process.exit(0);
     });
-    
+
     process.on('SIGTERM', () => {
-      console.log('Received SIGTERM. Shutting down gracefully...');
+      logToFile(requestId, 'Received SIGTERM. Shutting down gracefully...');
       process.exit(0);
     });
-    
-    // Log that the server is running (but don't use console.error)
-    process.stdout.write('SFCC Services MCP Server running on stdio\n');
   } catch (error) {
-    console.error('Error starting server:', error);
+    logToFile(requestId, `Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
     process.exit(1);
   }
 }
 
 main().catch((error) => {
-  console.error("Fatal error in main():", error);
+  const requestId = process.env.REQUEST_ID || 'default-request';
+  logToFile(requestId, `Unhandled error: ${error instanceof Error ? error.message : 'Unknown error'}`);
   process.exit(1);
 });
