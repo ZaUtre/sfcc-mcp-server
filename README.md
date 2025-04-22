@@ -26,7 +26,6 @@ Create a `.env` file in the project root directory with the following variables:
 ```
 # SFCC API Configuration
 SFCC_API_BASE=https://your-instance.api.commercecloud.salesforce.com/
-SFCC_SITE_ID=your_site_id  # optional, defaults to "RefArch"
 
 # Admin API Credentials (Client credentials flow)
 SFCC_ADMIN_CLIENT_ID=your_admin_client_id
@@ -37,7 +36,9 @@ SFCC_ADMIN_CLIENT_SECRET=your_admin_client_secret
 
 To use the SFCC Data APIs, you need to configure an API client in SFCC with the proper permissions:
 
-1. In SFCC Business Manager, go to Administration > Site Development > Open Commerce API Settings
+### API Client
+
+1. In SFCC Account Manager, go to API Client
 2. Create a new API client or edit an existing one
 3. Configure the OAuth settings:
    - OAuth Client ID: (your client ID)
@@ -46,7 +47,37 @@ To use the SFCC Data APIs, you need to configure an API client in SFCC with the 
    - Token Endpoint Auth Method: `client_secret_post`
 4. Configure API client roles:
    - Assign appropriate roles to access the required data
-   
+
+### Business Manager
+
+1. In SFCC Business Manager, go to Administration > Site Development > Open Commerce API Settings
+2. See `ocapi-bm-config.json` for the configuration example
+
+## MCP Configuration for VSCode
+
+1. Open Command Palette (`Ctrl/Cmd + Shift + P`)
+2. Type "MCP" and choose `MCP: Add Server...`
+3. Choose `Command (stdio) Manual Install`
+4. Type `node <full-path-to-your>/build/index.js` for the command (replace path placeholder before submit)
+5. Name the MCP (e.g., "sfcc")
+6. Choose to configure for User or Workspace
+
+This will create a new server definition either in your user `settings.json` or in workspace `.vscode/mcp.json`
+
+```json
+{
+    "servers": {
+        "sfcc": {
+            "type": "stdio",
+            "command": "node",
+            "args": [
+                "<full-path-to-your>/build/index.js"
+            ]
+        }
+    }
+}
+```
+Now you can monitor/start/restart/stop your server through `MCP: List Servers` command. Work with tools by switching to `Agent` mode in GitHub Copilot Chat
 
 ## Usage
 
