@@ -6,8 +6,9 @@ A Model Context Protocol (MCP) server for interacting with Salesforce Commerce C
 
 - Dynamic endpoint registration based on `endpoints.json` configuration
 - Automatic handling of path and query parameters
+- Support for both GET and POST requests
 - OCAPI authentication using client credentials flow
-- Support for all SFCC GET Data API endpoints
+- Support for SFCC Data API endpoints, including product search
 
 ## Installation
 
@@ -95,6 +96,7 @@ Endpoints are configured in `src/endpoints.json`. Each endpoint has the followin
 {
     "path": "/your/endpoint/{param}",
     "description": "Description of what this endpoint does",
+    "method": "GET",  // Optional: HTTP method (GET, POST, PUT, DELETE). Defaults to GET
     "params": [
         {
             "name": "param",
@@ -108,13 +110,33 @@ Endpoints are configured in `src/endpoints.json`. Each endpoint has the followin
 
 - `path`: The API endpoint path, with path parameters in curly braces
 - `description`: A description of what the endpoint does
+- `method`: HTTP method to use (GET, POST, PUT, DELETE). Defaults to GET if not specified
 - `params`: Array of parameter definitions
   - `name`: Parameter name
   - `description`: Parameter description
-  - `type`: Parameter type (currently only string)
+  - `type`: Parameter type (string, number, boolean)
   - `required`: Whether the parameter is required
 
 Parameters that appear in the path (e.g., `{param}`) are used for path substitution. Other parameters are automatically added as query parameters.
+
+### POST Requests and Request Bodies
+
+For POST endpoints, you can provide a JSON request body using the `requestBody` parameter when calling the tool. For example:
+
+```json
+{
+  "site_id": "SiteGenesis",
+  "requestBody": {
+    "query": {
+      "text_query": {
+        "search_phrase": "shirt"
+      }
+    },
+    "sort": "price-asc",
+    "count": 10
+  }
+}
+```
 
 ## Tool Names
 

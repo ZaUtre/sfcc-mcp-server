@@ -95,13 +95,23 @@ async function getAuthToken() {
   }
 }
 
-// Utility function for making GET requests to SFCC API
-async function makeSFCCRequest(endpoint: string, queryParams: URLSearchParams) {
+// Utility function for making HTTP requests to SFCC API
+async function makeSFCCRequest(endpoint: string, queryParams: URLSearchParams, method = 'GET', body?: any) {
   const requestId = process.env.REQUEST_ID || 'default-request';
   try {
-    logToFile(requestId, `Making SFCC API request to endpoint: ${endpoint}`);
+    logToFile(requestId, `Making SFCC API request to endpoint: ${endpoint} with method: ${method}`);
     const accessToken = await getAuthToken();
-    let url = `${SFCC_API_BASE}/s/-/dw/data/v24_5/${endpoint}`;
+    let url;
+    url = `${SFCC_API_BASE}/s/-/dw/data/v24_5/${endpoint}`;
+    
+    // Add site_id as a query param if not already in the URL
+    if (endpoint === 'product_search' && !url.includes('site_id=')) {
+      const siteId = queryParams.get('site_id');
+      if (siteId) {
+        // Keep site_id in query params as it's required for the Data API
+        // queryParams already has site_id, no need to add it again
+      }
+    }
     
     // Append query parameters if any exist
     const queryString = queryParams.toString();
@@ -109,14 +119,22 @@ async function makeSFCCRequest(endpoint: string, queryParams: URLSearchParams) {
       url += `?${queryString}`;
     }
     
-    const response = await fetch(url, {
-      method: 'GET',
+    const requestConfig: any = {
+      method: method,
       headers: {
         'Authorization': `Bearer ${accessToken}`,
         'x-dw-client-id': SFCC_ADMIN_CLIENT_ID,
         'User-Agent': USER_AGENT
       }
-    });
+    };
+    
+    // Add body for POST/PUT requests
+    if ((method === 'POST' || method === 'PUT') && body) {
+      requestConfig.headers['Content-Type'] = 'application/json';
+      requestConfig.body = JSON.stringify(body);
+    }
+    
+    const response = await fetch(url, requestConfig);
     
     if (!response.ok) {
       throw new Error(`SFCC API request failed: ${response.status} ${response.statusText}`);
@@ -142,6 +160,8 @@ interface Endpoint {
   path: string;
   description: string;
   params: EndpointParam[];
+  method?: string; // HTTP method (GET, POST, PUT, DELETE)
+  defaultBody?: any; // Default request body for POST/PUT requests
 }
 
 // Load endpoints from JSON file
@@ -210,10 +230,11 @@ function createToolName(path: string): string {
 }
 
 // Function to handle SFCC API requests
-async function handleSFCCRequest(endpoint: Endpoint, params: Record<string, string>) {
+async function handleSFCCRequest(endpoint: Endpoint, params: Record<string, any>) {
   const requestId = process.env.REQUEST_ID || 'default-request';
   try {
-    logToFile(requestId, `Handling SFCC request for endpoint: ${endpoint.path}`);
+    const method = endpoint.method || 'GET';
+    logToFile(requestId, `Handling SFCC request for endpoint: ${endpoint.path} with method: ${method}`);
     const path = replacePathParams(endpoint.path, params);
   
     // Find parameters that weren't used in the path - these are query parameters
@@ -221,14 +242,35 @@ async function handleSFCCRequest(endpoint: Endpoint, params: Record<string, stri
     const pathParamMatches = endpoint.path.match(/\{([^}]+)\}/g) || [];
     const pathParamNames = pathParamMatches.map(match => match.slice(1, -1));
   
-    // Add unused parameters as query parameters
+    // Extract request body for POST/PUT requests
+    let requestBody = null;
+    if ((method === 'POST' || method === 'PUT') && params.requestBody) {
+      try {
+        if (typeof params.requestBody === 'string') {
+          requestBody = JSON.parse(params.requestBody);
+        } else {
+          requestBody = params.requestBody;
+        }
+        logToFile(requestId, `Request body: ${JSON.stringify(requestBody)}`);
+      } catch (e) {
+        logToFile(requestId, `Error parsing request body: ${e instanceof Error ? e.message : 'Unknown error'}`);
+        throw new Error(`Invalid request body format: ${e instanceof Error ? e.message : 'Unknown error'}`);
+      }
+    }
+      // Use default request body if defined in the endpoint and no body provided
+    if ((method === 'POST' || method === 'PUT') && !requestBody && 'defaultBody' in endpoint) {
+      requestBody = endpoint.defaultBody;
+      logToFile(requestId, `Using default request body: ${JSON.stringify(requestBody)}`);
+    } 
+  
+    // Add unused parameters as query parameters (except requestBody)
     Object.entries(params).forEach(([key, value]) => {
-      if (!pathParamNames.includes(key)) {
-        queryParams.append(key, value);
+      if (!pathParamNames.includes(key) && key !== 'requestBody') {
+        queryParams.append(key, String(value));
       }
     });
   
-    const result = await makeSFCCRequest(path, queryParams);
+    const result = await makeSFCCRequest(path, queryParams, method, requestBody);
     logToFile(requestId, `SFCC request for endpoint ${endpoint.path} handled successfully.`);
     return result;
   } catch (error) {
@@ -250,6 +292,11 @@ endpoints.forEach(endpoint => {
       toolSchema[param.name] = z.string().optional().describe(param.description);
     }
   });
+  
+  // Add requestBody parameter for POST/PUT requests
+  if (endpoint.method === 'POST' || endpoint.method === 'PUT') {
+    toolSchema['requestBody'] = z.any().describe('JSON request body for the POST/PUT request');
+  }
   
   // Create the tool handler
   const toolHandler = async (input: Record<string, string>) => {
