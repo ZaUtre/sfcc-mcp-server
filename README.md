@@ -138,6 +138,35 @@ For POST endpoints, you can provide a JSON request body using the `requestBody` 
 }
 ```
 
+### Default Request Bodies
+
+Endpoints can define a `defaultBody` property that will be used if no request body is provided. This makes it easier to use the API without needing to know the exact body structure. For example, the product_search and campaign_search endpoints have default bodies that match all items if no specific query is provided.
+
+### Path Parameters vs. Query Parameters
+
+Parameters can be used in different ways depending on the endpoint:
+
+1. **Path Parameters**: Parameters included in the endpoint path with curly braces, like `/sites/{site_id}/campaign_search`
+2. **Query Parameters**: Other parameters appended to the URL as query strings
+
+Example for an endpoint with path parameters (campaign_search):
+
+```json
+{
+  "site_id": "SiteGenesis",
+  "requestBody": {
+    "query": {
+      "term_query": {
+        "fields": ["enabled"],
+        "operator": "is",
+        "values": ["true"]
+      }
+    },
+    "count": 20
+  }
+}
+```
+
 ## Tool Names
 
 Tool names are automatically generated from endpoint paths:

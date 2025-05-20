@@ -15,6 +15,88 @@
             ]
         },
         {
+            "path": "/catalog_search",
+            "description": "Search for catalogs using various search criteria. This endpoint supports complex search queries including text search, refinement, attribute filtering, sorting, and pagination.",
+            "method": "POST",
+            "defaultBody": {
+                "query": {
+                    "match_all_query": {
+                    }
+                }
+            },
+            "params": [
+            ]
+        },
+        {
+            "path": "/category_search",
+            "description": "Search for categories using various search criteria. This endpoint supports complex search queries including text search, refinement, attribute filtering, sorting, and pagination.",
+            "method": "POST",
+            "defaultBody": {
+                "query": {
+                    "match_all_query": {
+                    }
+                }
+            },
+            "params": [
+            ]
+        },
+        {
+            "path": "/sites/{site_id}/campaign_search",
+            "description": "Search for campaigns in a specific site using various search criteria. This endpoint supports complex search queries, filtering, sorting, and pagination similar to product search.",
+            "method": "POST",
+            "defaultBody": {
+                "query": {
+                    "match_all_query": {
+                    }
+                }
+            },
+            "params": [
+                {"name": "site_id", "description": "The ID of the site to search campaigns in.", "type": "string", "required": true}
+             ]
+        },
+        {
+            "path": "/sites/{site_id}/coupon_search",
+            "description": "Search for coupons in a specific site using various search criteria. This endpoint supports complex search queries, filtering, sorting, and pagination similar to product search.",
+            "method": "POST",
+            "defaultBody": {
+                "query": {
+                    "match_all_query": {
+                    }
+                }
+            },
+            "params": [
+                {"name": "site_id", "description": "The ID of the site to search campaigns in.", "type": "string", "required": true}
+             ]
+        },
+        {
+            "path": "/sites/{site_id}/promotion_search",
+            "description": "Search for promotions in a specific site using various search criteria. This endpoint supports complex search queries, filtering, sorting, and pagination similar to product search.",
+            "method": "POST",
+            "defaultBody": {
+                "query": {
+                    "match_all_query": {
+                    }
+                }
+            },
+            "params": [
+                {"name": "site_id", "description": "The ID of the site to search campaigns in.", "type": "string", "required": true}
+             ]
+        },
+          {
+            "path": "/custom_objects/{object_type}",
+            "description": "Search for custom objects of a specific custom object type using various search criteria. This endpoint supports complex search queries, filtering, sorting, and pagination similar to product search.",
+            "method": "POST",
+            "defaultBody": {
+                "query": {
+                    "match_all_query": {
+                    }
+                }
+            },
+            "params": [
+                {"name": "object_type", "description": "The ID of the custom object type to search.", "type": "string", "required": true}
+             ]
+        },
+        {
             "path": "/catalogs",
             "description": "Action to retrieve a list of all catalogs.",
             "params": [
