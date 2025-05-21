@@ -293,11 +293,6 @@ endpoints.forEach(endpoint => {
     }
   });
   
-  // Add requestBody parameter for POST/PUT requests
-  if (endpoint.method === 'POST' || endpoint.method === 'PUT') {
-    toolSchema['requestBody'] = z.any().describe('JSON request body for the POST/PUT request');
-  }
-  
   // Create the tool handler
   const toolHandler = async (input: Record<string, string>) => {
     try {

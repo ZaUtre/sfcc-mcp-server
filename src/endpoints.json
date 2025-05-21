@@ -11,7 +11,8 @@
                 }
             },
             "params": [
-                {"name": "site_id", "description": "The ID of the site to search products in.", "type": "string", "required": true}
+                {"name": "site_id", "description": "The ID of the site to search products in.", "type": "string", "required": true},
+                {"name": "requestBody", "description": "The request body containing search criteria.", "type": "object", "required": false}
             ]
         },
         {
