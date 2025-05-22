@@ -246,9 +246,16 @@ async function handleSFCCRequest(endpoint: Endpoint, params: Record<string, any>
     let requestBody = null;
     if ((method === 'POST' || method === 'PUT') && params.requestBody) {
       try {
-        if (typeof params.requestBody === 'string') {
+        // If requestBody is already an object, use it directly
+        if (typeof params.requestBody === 'object') {
+          requestBody = params.requestBody;
+        } 
+        // If it's a string, try to parse it as JSON
+        else if (typeof params.requestBody === 'string') {
           requestBody = JSON.parse(params.requestBody);
-        } else {
+        } 
+        // Otherwise, use as is
+        else {
           requestBody = params.requestBody;
         }
         logToFile(requestId, `Request body: ${JSON.stringify(requestBody)}`);
@@ -280,16 +287,30 @@ async function handleSFCCRequest(endpoint: Endpoint, params: Record<string, any>
 }
 
 // Register tools for each endpoint
-endpoints.forEach(endpoint => {
-  const toolName = createToolName(endpoint.path);
-  
-  // Create the tool schema
+endpoints.forEach(endpoint => {  const toolName = createToolName(endpoint.path);
+    // Create the tool schema
   const toolSchema: Record<string, any> = {};
-  endpoint.params.forEach(param => {
-    if (param.required) {
-      toolSchema[param.name] = z.string().describe(param.description);
+  endpoint.params.forEach((param: EndpointParam) => {
+    // Handle different parameter types
+    if (param.type === 'object') {
+      if (param.required) {
+        toolSchema[param.name] = z.object({}).passthrough().describe(param.description);
+      } else {
+        toolSchema[param.name] = z.object({}).passthrough().optional().describe(param.description);
+      }
+    } else if (param.type === 'number' || param.type === 'integer') {
+      if (param.required) {
+        toolSchema[param.name] = z.number().describe(param.description);
+      } else {
+        toolSchema[param.name] = z.number().optional().describe(param.description);
+      }
     } else {
-      toolSchema[param.name] = z.string().optional().describe(param.description);
+      // Default to string for all other types
+      if (param.required) {
+        toolSchema[param.name] = z.string().describe(param.description);
+      } else {
+        toolSchema[param.name] = z.string().optional().describe(param.description);
+      }
     }
   });
   
