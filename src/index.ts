@@ -162,6 +162,7 @@ interface Endpoint {
   params: EndpointParam[];
   method?: string; // HTTP method (GET, POST, PUT, DELETE)
   defaultBody?: any; // Default request body for POST/PUT requests
+  toolName?: string; // Custom tool name to use instead of auto-generated name
 }
 
 // Load endpoints from JSON file
@@ -287,8 +288,10 @@ async function handleSFCCRequest(endpoint: Endpoint, params: Record<string, any>
 }
 
 // Register tools for each endpoint
-endpoints.forEach(endpoint => {  const toolName = createToolName(endpoint.path);
-    // Create the tool schema
+endpoints.forEach(endpoint => {
+  // Use custom tool name if provided, otherwise generate one
+  const toolName = endpoint.toolName || createToolName(endpoint.path);
+  // Create the tool schema
   const toolSchema: Record<string, any> = {};
   endpoint.params.forEach((param: EndpointParam) => {
     // Handle different parameter types
@@ -313,8 +316,7 @@ endpoints.forEach(endpoint => {  const toolName = createToolName(endpoint.path);
       }
     }
   });
-  
-  // Create the tool handler
+    // Create the tool handler
   const toolHandler = async (input: Record<string, string>) => {
     try {
       const requestId = process.env.REQUEST_ID || 'default-request';
@@ -322,8 +324,20 @@ endpoints.forEach(endpoint => {  const toolName = createToolName(endpoint.path);
       const filteredParams = Object.fromEntries(
         Object.entries(input).filter(([_, value]) => value !== undefined && value !== '')
       );
+        // Check if there's a custom handler for this tool name
+      const customHandlerName = `handler_${toolName}`;
+      let data;
       
-      const data = await handleSFCCRequest(endpoint, filteredParams);
+      // Check if the custom handler exists globally
+      if (typeof global[customHandlerName as keyof typeof global] === 'function') {
+        // Call the custom handler function
+        logToFile(requestId, `Using custom handler ${customHandlerName} for endpoint: ${endpoint.path}`);
+        data = await (global[customHandlerName as keyof typeof global] as Function)(endpoint, filteredParams);
+      } else {
+        // Use the default handler
+        data = await handleSFCCRequest(endpoint, filteredParams);
+      }
+      
       return {
         content: [
           {
@@ -365,7 +379,129 @@ function logToFile(requestId: string, message: string) {
   fs.appendFileSync(logFilePath, logMessage, 'utf8');
 }
 
-// Update main function to include request ID in logs
+// Make handleSFCCRequest available globally for custom handlers
+(global as any).handleSFCCRequest = handleSFCCRequest;
+
+// Helper function to get the default handler
+function getDefaultHandler() {
+  if (typeof handleSFCCRequest === 'function') {
+    return handleSFCCRequest;
+  }
+  if (typeof (global as any).handleSFCCRequest === 'function') {
+    return (global as any).handleSFCCRequest;
+  }
+  throw new Error('Default handler not available');
+}
+
+/**
+ * Custom handler for product search
+ * 
+ * This is an example of how to create a custom handler for the product search endpoint.
+ * This handler will be used instead of the default handler when the product_search endpoint is called.
+ */
+
+/**
+ * Custom handler for product search by name
+ * 
+ * This handler creates a search query based on product name or category_id parameters
+ */
+async function handler_productsearch(endpoint: any, params: Record<string, any>) {
+  const requestId = process.env.REQUEST_ID || 'default-request';
+  
+  try {
+    logToFile(requestId, `Custom handler for ${endpoint.path} called with params: ${JSON.stringify(params)}`);
+    
+    // Create a query object based on the parameters
+    let searchQuery: any = { };
+    
+    // If name parameter is provided, create a text search query
+    if (params.name) {
+      searchQuery = {
+        query: {
+          text_query: {
+            fields: ["name"],
+            search_phrase: params.name
+          }
+        }
+      };
+      logToFile(requestId, `Created text search query for product name: ${params.name}`);
+    } 
+    // If category_id is provided, create a category refinement query
+    else if (params.category_id) {
+      searchQuery = {
+        query: {
+          filtered_query: {
+            query: { match_all_query: {} },
+            filter: {
+              category_id_filter: {
+                value: params.category_id
+              }
+            }
+          }
+        }
+      };
+      logToFile(requestId, `Created category refinement query for category_id: ${params.category_id}`);
+    } 
+    // If neither is provided, use a match_all query
+    else {
+      searchQuery = {
+        query: {
+          match_all_query: {}
+        }
+      };
+      logToFile(requestId, `No search criteria provided, using match_all query`);
+    }    // Handle expand parameter - use the custom expand parameter if provided, otherwise use default expanded fields
+    if (params.expand) {
+      // Split comma-separated string into an array
+      searchQuery.expand = params.expand.split(',').map((item: string) => item.trim());
+      logToFile(requestId, `Using custom expand fields: ${searchQuery.expand.join(', ')}`);
+    } else {
+      // Use default expand fields
+      searchQuery.expand = [
+        "availability", 
+        "images",
+        "prices"
+      ];
+      logToFile(requestId, `Using default expand fields`);
+    }
+    
+    // Handle inventory_ids parameter
+    if (params.inventory_ids) {
+      searchQuery.inventory_ids = params.inventory_ids.split(',').map((id: string) => id.trim());
+      logToFile(requestId, `Added inventory_ids filter: ${searchQuery.inventory_ids.join(', ')}`);
+    }
+    
+    // Handle pagination parameters (count and start)
+    if (params.count) {
+      searchQuery.count = parseInt(params.count);
+      logToFile(requestId, `Set results count to: ${searchQuery.count}`);
+    }
+    
+    if (params.start) {
+      searchQuery.start = parseInt(params.start);
+      logToFile(requestId, `Set pagination start to: ${searchQuery.start}`);
+    }
+
+    searchQuery.select = "(**)";
+
+    // Set the request body in params
+    params.requestBody = searchQuery;
+    
+    // Get the default handler and call it with our modified params
+    const defaultHandler = getDefaultHandler();
+    return await defaultHandler(endpoint, params);
+  } catch (error) {
+    logToFile(requestId, `Error in productsearch handler: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    throw error;
+  }
+}
+
+// Make custom handler accessible globally
+(global as any).handler_productsearch = handler_productsearch;
+
+// Export handleSFCCRequest so it can be used in other modules
+export { handleSFCCRequest };
+
 async function main() {
   const requestId = process.env.REQUEST_ID || 'default-request';
   try {

@@ -2,8 +2,9 @@
     "endpoints": [
         {
             "path": "/product_search",
-            "description": "Search for products using various search criteria. This endpoint supports complex search queries including text search, category refinement, attribute filtering, sorting, and pagination.",
+            "description": "Search for products by product name or category.",
             "method": "POST",
+            "toolName": "productsearch",
             "defaultBody": {
                 "query": {
                     "match_all_query": {
@@ -12,8 +13,13 @@
             },
             "params": [
                 {"name": "site_id", "description": "The ID of the site to search products in.", "type": "string", "required": true},
-                {"name": "requestBody", "description": "The request body containing search criteria.", "type": "object", "required": false}
-            ]
+                {"name": "name", "description": "The name of the product to search for", "type": "string", "required": false},
+                {"name": "category_id", "description": "The ID of the category to search products in.", "type": "string", "required": false},
+                {"name": "expand", "description": "Comma-separated list of resources to expand (e.g., availability, images, prices).", "type": "string", "required": false},
+                {"name": "inventory_ids", "description": "Comma-separated list of inventory list IDs.", "type": "string", "required": false},
+                {"name": "count", "description": "The number of products to return.", "type": "integer", "required": false},
+                {"name": "start", "description": "The starting index for pagination.", "type": "integer", "required": false}
+           ]
         },
         {
             "path": "/catalog_search",
@@ -478,10 +484,10 @@
             "path": "/permissions/csc/module",
             "description": "Action to retrieve module-specific Customer Service Center (CSC) permissions.",
             "params": []
-        },
-        {
+        },        {
             "path": "/products/{id}",
             "description": "Action to retrieve details for a specific product.",
+            "toolName": "product_details",
             "params": [
                 {"name": "id", "description": "The ID of the product.", "type": "string", "required": true},
                 {"name": "expand", "description": "Comma-separated list of resources to expand (e.g., images, prices).", "type": "string", "required": false},
@@ -641,6 +647,7 @@
         {
             "path": "/sites",
             "description": "Action to retrieve a list of all sites.",
+            "toolName": "sites",
             "params": []
         },
         {

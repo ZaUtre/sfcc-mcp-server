@@ -177,6 +177,125 @@ Tool names are automatically generated from endpoint paths:
 
 Example: `/catalogs/{id}/products` becomes `catalogs_by_id_products`
 
+You can also specify a custom tool name in your endpoint configuration:
+
+```json
+{
+  "path": "/product_search",
+  "toolName": "product_search",
+  "description": "Search for products..."
+}
+```
+
+## Custom Handlers
+
+You can create custom handlers for endpoints by:
+
+1. Specifying a custom `toolName` in the endpoint definition
+2. Creating a function named `handler_[toolName]` that will be called instead of the default handler
+
+To create a custom handler, create a function with the name pattern `handler_[toolName]`. This function will be automatically detected and used instead of the default handler:
+
+```typescript
+/**
+ * Custom handler for product search
+ * This function will be called instead of the default handler when 
+ * the endpoint with toolName "product_search" is accessed
+ */
+export async function handler_product_search(endpoint, params) {
+  console.log(`Custom handler for ${endpoint.path} called with params:`, params);
+  
+  // Example of custom processing before making the actual request
+  if (params.requestBody && typeof params.requestBody === 'object') {
+    // Modify the request if needed
+    params.requestBody.custom_field = 'Added by custom handler';
+  }
+  
+  // Call the default handler with your modified params
+  const defaultHandler = getDefaultHandler();
+  return await defaultHandler(endpoint, params);
+}
+```
+
+### Creating Custom Handlers
+
+You can define custom handlers directly in your `index.ts` file:
+
+```typescript
+/**
+ * Custom handler for an endpoint with toolName "example_endpoint"
+ */
+async function handler_example_endpoint(endpoint, params) {
+  // Your custom implementation
+  // ...
+}
+
+// Make the custom handler accessible globally
+(global as any).handler_example_endpoint = handler_example_endpoint;
+```
+
+Your custom handler function will receive two parameters:
+- `endpoint`: The endpoint configuration object
+- `params`: The parameters sent to the endpoint
+
+The function should return the data that will be sent back to the client.
+
+### Helper Functions
+
+Use this helper function to access the default handler:
+
+```typescript
+// Helper to get the default handler
+function getDefaultHandler() {
+  if (typeof handleSFCCRequest === 'function') {
+    return handleSFCCRequest;
+  }
+  if (typeof (global as any).handleSFCCRequest === 'function') {
+    return (global as any).handleSFCCRequest;
+  }
+  throw new Error('Default handler not available');
+}
+```
+
+### Custom Handler Patterns
+
+You can implement different patterns in your custom handlers:
+
+**Pre-processing:** Modify parameters before calling the default handler
+```typescript
+export async function handler_example(endpoint, params) {
+  // Modify params
+  params.customField = 'value';
+  
+  // Call default handler with modified params
+  return await getDefaultHandler()(endpoint, params);
+}
+```
+
+**Post-processing:** Enhance the result after calling the default handler
+```typescript
+export async function handler_example(endpoint, params) {
+  // Get result from default handler
+  const result = await getDefaultHandler()(endpoint, params);
+  
+  // Modify the result
+  result.enhancedField = 'value';
+  
+  return result;
+}
+```
+
+**Complete override:** Implement custom behavior without calling the default handler
+```typescript
+export async function handler_example(endpoint, params) {
+  // Custom implementation
+  return {
+    custom: true,
+    data: [...]
+  };
+}
+```
+
 ## License
 
 MIT
