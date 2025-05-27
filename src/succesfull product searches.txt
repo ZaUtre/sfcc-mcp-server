@@ -1,0 +1,801 @@
+/*
+ * SALESFORCE COMMERCE API - PRODUCT SEARCH QUERY REFERENCE
+ * =======================================================
+ *
+ * Basic query structure:
+ * {
+ *   "query": { ... },  // Required: Search query specification
+ *   "select": "(**)",  // Optional: Field selection pattern (default: all fields)
+ *   "start": 0,        // Optional: Starting index for pagination
+ *   "count": 20,       // Optional: Number of results to return
+ *   "expand": [...],   // Optional: Related data to include
+ *   "sorts": [...],    // Optional: Sorting specifications
+ *   "facets": [...]    // Optional: Facet specifications for aggregation
+ * }
+ *
+ * Core query types:
+ * - match_all_query: Returns all products
+ * - text_query: Searches text fields (name, description, etc.)
+ * - term_query: Exact field matching with operators (is, one_of, etc.)
+ * - range_query: Numeric/date range filtering
+ * - fuzzy_query: Text search with typo tolerance
+ * - prefix_query: Match fields starting with pattern
+ * - regexp_query: Regular expression matching
+ * 
+ * Compound query types:
+ * - bool_query: Logical operations (must, should, must_not)
+ * - filtered_query: Apply filters to search results
+ * - nested_query: Query nested document structures
+ *
+ * For full documentation, see:
+ * - https://developer.salesforce.com/docs/commerce/b2c-commerce/references/b2c-commerce-ocapi/queries.html
+ * - Complete reference at: c:\Users\dimit\dev\sfcc-mcp-server\src\docs\product-search-api.md
+ */
+
+// Basic match_all_query
+{
+  "query": { "match_all_query": {} },
+  "select": "(**)",
+  "start": 0,
+  "count": 50,
+  "expand": ["images", "prices", "availability"]
+}
+
+// Simple match_all_query with smaller count
+{
+  "query": {
+    "match_all_query": {}
+  },
+  "select": "(**)",
+  "count": 3
+}
+
+// Search by text in name field
+{
+  "query": {
+    "text_query": {
+      "fields": ["name"],
+      "search_phrase": "shirt"
+    }
+  },
+  "select": "(**)",
+  "count": 2
+}
+
+// Sort by name field
+{
+  "query": {
+    "text_query": {
+      "fields": ["name"],
+      "search_phrase": "shirt"
+    }
+  },
+  "sorts": [
+    {
+      "field": "name",
+      "sort_order": "asc"
+    }
+  ],
+  "select": "(**)",
+  "count": 2
+}
+
+// Sort by multiple fields
+{
+  "query": {
+    "text_query": {
+      "fields": ["name"],
+      "search_phrase": "shirt"
+    }
+  },
+  "sorts": [
+    {
+      "field": "name",
+      "sort_order": "asc"
+    },
+    {
+      "field": "creation_date",
+      "sort_order": "desc"
+    }
+  ],
+  "select": "(**)",
+  "count": 2
+}
+
+// Pagination with start parameter
+{
+  "query": {
+    "text_query": {
+      "fields": ["name"],
+      "search_phrase": "shirt"
+    }
+  },
+  "select": "(**)",
+  "count": 2,
+  "start": 2
+}
+
+// Search for exact product ID
+{
+  "query": {
+    "term_query": {
+      "fields": ["id"],
+      "operator": "is",
+      "values": ["25050730M"]
+    }
+  },
+  "select": "(**)",
+  "count": 1
+}
+
+// Search for multiple product IDs
+{
+  "query": {
+    "term_query": {
+      "fields": ["id"],
+      "operator": "one_of",
+      "values": ["25050730M", "25050736M"]
+    }
+  },
+  "select": "(**)",
+  "count": 2
+}
+
+// Multiple word search phrase
+{
+  "query": {
+    "text_query": {
+      "fields": ["name"],
+      "search_phrase": "shirt dress"
+    }
+  },
+  "select": "(**)",
+  "count": 2
+}
+
+// Range query - filter products by price range
+{
+  "query": {
+    "range_query": {
+      "field": "price",
+      "from": 10,
+      "to": 50
+    }
+  },
+  "select": "(**)",
+  "count": 5
+}
+
+// Boolean query - combining multiple conditions with "and" operator
+{
+  "query": {
+    "bool_query": {
+      "must": [
+        {
+          "text_query": {
+            "fields": ["name"],
+            "search_phrase": "shirt"
+          }
+        },
+        {
+          "range_query": {
+            "field": "price",
+            "from": 20,
+            "to": 100
+          }
+        }
+      ]
+    }
+  },
+  "select": "(**)",
+  "count": 5
+}
+
+// Filter products by category ID
+{
+  "query": {
+    "term_query": {
+      "fields": ["category_id"],
+      "operator": "is",
+      "values": ["mens-clothing-shirts"]
+    }
+  },
+  "select": "(**)",
+  "count": 5
+}
+
+// Query with nested conditions - products in category with specific attribute value
+{
+  "query": {
+    "bool_query": {
+      "must": [
+        {
+          "term_query": {
+            "fields": ["category_id"],
+            "operator": "is",
+            "values": ["mens-clothing"]
+          }
+        },
+        {
+          "term_query": {
+            "fields": ["c_refinementColor"],
+            "operator": "one_of",
+            "values": ["blue", "navy"]
+          }
+        }
+      ]
+    }
+  },
+  "select": "(**)",
+  "count": 5
+}
+
+// Fuzzy search - allows matching with minor typos/variations
+{
+  "query": {
+    "fuzzy_query": {
+      "fields": ["name"],
+      "search_phrase": "shrt", 
+      "fuzziness": 1
+    }
+  },
+  "select": "(**)",
+  "count": 5
+}
+
+// Filtered product search with specified refinements
+{
+  "query": {
+    "filtered_query": {
+      "query": {
+        "text_query": {
+          "fields": ["name", "description"],
+          "search_phrase": "shirt"
+        }
+      },
+      "filter": {
+        "range_query": {
+          "field": "price",
+          "from": 20,
+          "to": null
+        }
+      }
+    }
+  },
+  "select": "(**)",
+  "count": 5
+}
+
+// Product search with specific facets returned
+{
+  "query": {
+    "match_all_query": {}
+  },
+  "select": "(**)",
+  "count": 5,
+  "facets": [
+    {
+      "field": "c_refinementColor",
+      "limit": 10,
+      "min_count": 1
+    },
+    {
+      "field": "brand",
+      "limit": 5
+    },
+    {
+      "field": "price",
+      "bucket_size": 25,
+      "min": 0,
+      "max": 200
+    }
+  ]
+}
+
+// Query with product expands - include detailed product information
+{
+  "query": {
+    "match_all_query": {}
+  },
+  "select": "(**)",
+  "count": 3,
+  "expand": [
+    "availability", 
+    "images", 
+    "prices", 
+    "variations", 
+    "options"
+  ]
+}
+
+// Nested Boolean query with "not" conditions
+{
+  "query": {
+    "bool_query": {
+      "must": [
+        {
+          "text_query": {
+            "fields": ["name", "short_description"],
+            "search_phrase": "shirt"
+          }
+        }
+      ],
+      "must_not": [
+        {
+          "term_query": {
+            "fields": ["c_size"],
+            "operator": "one_of",
+            "values": ["S", "XS"]
+          }
+        }
+      ]
+    }
+  },
+  "select": "(**)",
+  "count": 5
+}
+
+// Query with sorting by relevance and then price
+{
+  "query": {
+    "text_query": {
+      "fields": ["name", "description"],
+      "search_phrase": "shirt"
+    }
+  },
+  "sorts": [
+    {
+      "field": "_relevance",
+      "sort_order": "desc"
+    },
+    {
+      "field": "price",
+      "sort_order": "asc"
+    }
+  ],
+  "select": "(**)",
+  "count": 5
+}
+
+
+// Query with advanced sorting, filtering, and faceting
+{
+  "query": {
+    "filtered_query": {
+      "query": {
+        "text_query": {
+          "fields": ["name", "description"],
+          "search_phrase": "shirt"
+        }
+      },
+      "filter": {
+        "bool_query": {
+          "must": [
+            {
+              "range_query": {
+                "field": "price",
+                "from": 20,
+                "to": 100
+              }
+            },
+            {
+              "term_query": {
+                "fields": ["brand"],
+                "operator": "one_of",
+                "values": ["Calvin Klein", "Nike", "Adidas"]
+              }
+            }
+          ]
+        }
+      }
+    }
+  },
+  "sorts": [
+    {
+      "field": "_relevance",
+      "sort_order": "desc"
+    },
+    {
+      "field": "price",
+      "sort_order": "asc"
+    }
+  ],
+  "facets": [
+    {
+      "field": "brand",
+      "limit": 10
+    },
+    {
+      "field": "c_refinementColor",
+      "limit": 10
+    },
+    {
+      "field": "price",
+      "bucket_size": 20,
+      "min": 0,
+      "max": 200
+    }
+  ],
+  "select": "(**)",
+  "count": 10
+}
+
+// Search for products with specific inventory status
+{
+  "query": {
+    "bool_query": {
+      "must": [
+        {
+          "text_query": {
+            "fields": ["name"],
+            "search_phrase": "shirt"
+          }
+        },
+        {
+          "term_query": {
+            "fields": ["inventory.in_stock"],
+            "operator": "is",
+            "values": ["true"]
+          }
+        }
+      ]
+    }
+  },
+  "select": "(**)",
+  "count": 5
+}
+
+// Query for products with specific custom attribute values
+{
+  "query": {
+    "bool_query": {
+      "must": [
+        {
+          "term_query": {
+            "fields": ["c_isNew"],
+            "operator": "is",
+            "values": ["true"]
+          }
+        },
+        {
+          "term_query": {
+            "fields": ["c_isSustainable"],
+            "operator": "is",
+            "values": ["true"]
+          }
+        }
+      ]
+    }
+  },
+  "select": "(**)",
+  "count": 10
+}
+
+// Search for products with date range filtering
+{
+  "query": {
+    "bool_query": {
+      "must": [
+        {
+          "text_query": {
+            "fields": ["name"],
+            "search_phrase": "shirt"
+          }
+        },
+        {
+          "range_query": {
+            "field": "creation_date",
+            "from": "2023-01-01T00:00:00.000Z",
+            "to": "2023-12-31T23:59:59.999Z"
+          }
+        }
+      ]
+    }
+  },
+  "select": "(**)",
+  "count": 5
+}
+
+// Prefix search query to find products with names starting with a specific pattern
+{
+  "query": {
+    "prefix_query": {
+      "field": "name",
+      "prefix": "short sleeve"
+    }
+  },
+  "select": "(**)",
+  "count": 5
+}
+
+// Filtered search with nested attribute querying
+{
+  "query": {
+    "nested_query": {
+      "path": "custom_attributes",
+      "query": {
+        "bool_query": {
+          "must": [
+            {
+              "term_query": {
+                "fields": ["custom_attributes.id"],
+                "operator": "is",
+                "values": ["material"]
+              }
+            },
+            {
+              "term_query": {
+                "fields": ["custom_attributes.value"],
+                "operator": "is",
+                "values": ["cotton"]
+              }
+            }
+          ]
+        }
+      }
+    }
+  },
+  "select": "(**)",
+  "count": 5
+}
+
+// Query that includes products on sale (with price adjustment)
+{
+  "query": {
+    "bool_query": {
+      "must": [
+        {
+          "term_query": {
+            "fields": ["price_adjustment_in_effect"],
+            "operator": "is",
+            "values": ["true"]
+          }
+        }
+      ]
+    }
+  },
+  "sorts": [
+    {
+      "field": "price",
+      "sort_order": "asc"
+    }
+  ],
+  "select": "(**)",
+  "count": 10
+}
+
+// Query for products with specific variation attributes
+{
+  "query": {
+    "bool_query": {
+      "must": [
+        {
+          "term_query": {
+            "fields": ["type"],
+            "operator": "is",
+            "values": ["master"]
+          }
+        },
+        {
+          "term_query": {
+            "fields": ["variation_attributes.id"],
+            "operator": "is",
+            "values": ["color"]
+          }
+        }
+      ]
+    }
+  },
+  "select": "(**)",
+  "count": 5
+}
+
+// Complex search with regexp query pattern
+{
+  "query": {
+    "regexp_query": {
+      "field": "id",
+      "pattern": ".*M$"
+    }
+  },
+  "select": "(**)",
+  "count": 5
+}
+
+// Search with product bundles filtering
+{
+  "query": {
+    "term_query": {
+      "fields": ["type"],
+      "operator": "is",
+      "values": ["bundle"]
+    }
+  },
+  "select": "(**)",
+  "count": 5,
+  "expand": ["bundled_products"]
+}
+
+
+// Search with detailed field selection
+{
+  "query": {
+    "match_all_query": {}
+  },
+  "select": "(id,name,price,image_groups.images.(link,title),inventory.(in_stock,ats))",
+  "count": 3
+}
+
+// Product Search by Category Hierarchy
+{
+  "query": {
+    "bool_query": {
+      "must": [
+        {
+          "term_query": {
+            "fields": ["primary_category_path"],
+            "operator": "starts_with",
+            "values": ["/mens/clothing"]
+          }
+        }
+      ]
+    }
+  },
+  "select": "(**)",
+  "count": 5
+}
+
+// Search for Promotional Products
+{
+  "query": {
+    "bool_query": {
+      "must": [
+        {
+          "text_query": {
+            "fields": ["name"],
+            "search_phrase": "shirt"
+          }
+        },
+        {
+          "term_query": {
+            "fields": ["c_isOnSale"],
+            "operator": "is",
+            "values": ["true"]
+          }
+        }
+      ]
+    }
+  },
+  "sorts": [
+    {
+      "field": "promotion_price",
+      "sort_order": "asc"
+    }
+  ],
+  "select": "(**)",
+  "count": 5
+}
+
+// Localized Product Search
+{
+  "query": {
+    "text_query": {
+      "fields": ["name"],
+      "search_phrase": "shirt"
+    }
+  },
+  "locale": "fr-FR",
+  "select": "(**)",
+  "count": 5
+}
+
+// Product Search with Site-Specific Pricing
+{
+  "query": {
+    "match_all_query": {}
+  },
+  "pricing_context": {
+    "currency_code": "EUR",
+    "customer_group_id": "VIP_Customers"
+  },
+  "select": "(**)",
+  "count": 5
+}
+
+// Product Search with Advanced Distribution
+{
+  "query": {
+    "match_all_query": {}
+  },
+  "distribution": [
+    {
+      "field": "price",
+      "distribution_type": "EVEN",
+      "buckets": [
+        {"from": 0, "to": 50},
+        {"from": 50, "to": 100},
+        {"from": 100, "to": 200},
+        {"from": 200, "to": null}
+      ]
+    }
+  ],
+  "select": "(**)",
+  "count": 5
+}
+
+// Search with Personalization Context
+{
+  "query": {
+    "match_all_query": {}
+  },
+  "personalization_context": {
+    "customer_id": "001023",
+    "viewed_products": ["25050730M", "25050736M"],
+    "recently_purchased_categories": ["mens-clothing-shirts"]
+  },
+  "select": "(**)",
+  "count": 10
+}
+
+// Search for Recently Updated Products
+{
+  "query": {
+    "range_query": {
+      "field": "last_modified",
+      "from": "2023-06-01T00:00:00.000Z",
+      "to": null
+    }
+  },
+  "sorts": [
+    {
+      "field": "last_modified",
+      "sort_order": "desc"
+    }
+  ],
+  "select": "(**)",
+  "count": 10
+}
+
+// Search with Availability and Inventory Filtering
+{
+  "query": {
+    "bool_query": {
+      "must": [
+        {
+          "term_query": {
+            "fields": ["inventory.stock_level_status"],
+            "operator": "is",
+            "values": ["in-stock"]
+          }
+        },
+        {
+          "range_query": {
+            "field": "inventory.ats",
+            "from": 5,
+            "to": null
+          }
+        }
+      ]
+    }
+  },
+  "select": "(**)",
+  "count": 5
+}
+
+// Search with Site-Specific Product Assortment
+{
+  "query": {
+    "text_query": {
+      "fields": ["name"],
+      "search_phrase": "shirt"
+    }
+  },
+  "refine_products": [
+    {
+      "attribute_id": "c_isOnSite",
+      "values": ["true"]
+    }
+  ],
+  "select": "(**)",
+  "count": 5
+}
