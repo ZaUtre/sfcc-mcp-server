@@ -2,7 +2,6 @@
   "name": "sfcc-mcp-server",
   "version": "1.0.0",
   "description": "A Model Context Protocol (MCP) server for interacting with Salesforce Commerce Cloud (SFCC) APIs",
-  "type": "module",
   "bin": {
     "sfcc-mcp": "./build/index.js"
   },
@@ -16,7 +15,13 @@
   "files": [
     "build"
   ],
-  "keywords": ["salesforce", "commerce cloud", "sfcc", "mcp", "model context protocol"],
+  "keywords": [
+    "salesforce",
+    "commerce cloud",
+    "sfcc",
+    "mcp",
+    "model context protocol"
+  ],
   "author": "Dimitar Peev",
   "license": "MIT",
   "dependencies": {
@@ -26,12 +31,13 @@
     "dotenv": "^16.4.7",
     "form-data": "^4.0.2",
     "loglevel": "^1.9.2",
-    "node-fetch": "^3.3.2",
+    "node-fetch": "^2.7.0",
     "typescript": "^5.8.2",
     "zod": "^3.24.2"
   },
   "devDependencies": {
     "@types/node": "^22.13.14",
+    "@types/node-fetch": "^2.6.12",
     "openapi-typescript-codegen": "^0.29.0",
     "swagger-typescript-api": "^13.0.24"
   }
