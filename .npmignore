@@ -1,0 +1,17 @@
+# Source files (since we're publishing the built version)
+src
+# Development files
+.git
+.github
+.vscode
+# Logs
+*.log
+# Env files and secrets
+.env*
+# Tests
+test*
+# Other files not needed in the published package
+node_modules
+.gitignore
+tsconfig.json
+*.tsbuildinfo
