@@ -2,6 +2,8 @@ import { z } from "zod";
 import { Endpoint, EndpointParam } from './types.js';
 
 export class ToolNameGenerator {
+  private static maxToolNameLength = 54;
+
   private usedToolNames = new Set<string>();
 
   public createToolName(path: string, customName?: string): string {
@@ -14,9 +16,9 @@ export class ToolNameGenerator {
     // Replace parameter placeholders with 'by' to create a more readable function name
     name = name.replace(/\{([^}]+)\}/g, 'by_$1');
     
-    // If name is longer than 60 chars, truncate it
-    if (name.length > 60) {
-      name = `${name.slice(0, 30)}_${name.slice(-29)}`;
+    // If name is longer than 54 chars (limit for MCP server name + tool name is 60 chars), truncate it
+    if (name.length > ToolNameGenerator.maxToolNameLength) {
+      name = `${name.slice(0, ToolNameGenerator.maxToolNameLength / 2)}_${name.slice(-ToolNameGenerator.maxToolNameLength / 2)}`;
     }
     
     return this.ensureUniqueness(name);
