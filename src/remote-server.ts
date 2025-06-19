@@ -2,7 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
-import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
+
 import { v4 as uuidv4 } from 'uuid';
 import { configManager } from './config.js';
 import { Logger } from './logger.js';
@@ -336,7 +336,7 @@ export function createMCPServer(): McpServer {
   return server;
 }
 
-// Modern transport endpoint (Streamable HTTP)
+// MCP transport endpoint (Streamable HTTP)
 app.post('/mcp', async (req, res) => {
   const body = req.body;
   const rpcId = (body && body.id !== undefined) ? body.id : null;
@@ -403,91 +403,7 @@ app.post('/mcp', async (req, res) => {
   }
 });
 
-// Legacy transport endpoints (HTTP+SSE)
-app.get('/mcp', async (req, res) => {
-  // Authenticate the token
-  const authResult = await authenticateToken(req, res, null);
-  if (!authResult.success) {
-    return;
-  }
-  
-  (req as any).auth = authResult.authObject;
-  
-  // Create SSE transport
-  const transport = new SSEServerTransport('/messages', res);
-  
-  // Store transport for future messages
-  transports[transport.sessionId] = transport;
-  
-  // Set SSE headers
-  res.setHeader('Content-Type', 'text/event-stream');
-  res.setHeader('Cache-Control', 'no-cache');
-  res.setHeader('Connection', 'keep-alive');
-  res.setHeader('X-Accel-Buffering', 'no');
-  res.setHeader('Mcp-Session-Id', transport.sessionId);
-  
-  // Connect to MCP server
-  try {
-    await mcpServer.connect(transport);
-  } catch (error) {
-    Logger.error('mcp-server', 'SSE setup error', error as Error);
-    if (!res.headersSent) {
-      res.status(500).send('Internal server error during SSE setup.');
-    } else {
-      res.end();
-    }
-    
-    // Clean up transport
-    if (transports[transport.sessionId]) {
-      delete transports[transport.sessionId];
-    }
-  }
-});
 
-app.post('/messages', express.json(), async (req, res) => {
-  const sessionId = req.query.sessionId as string;
-  const body = req.body;
-  const rpcId = (body && body.id !== undefined) ? body.id : null;
-  
-  // Authenticate the token
-  const authResult = await authenticateToken(req, res, rpcId);
-  if (!authResult.success) {
-    return;
-  }
-  
-  (req as any).auth = authResult.authObject;
-    if (!sessionId) {
-    res.status(400).json({
-      jsonrpc: '2.0',
-      error: { code: -32000, message: 'Missing sessionId in query parameters' },
-      id: rpcId
-    });
-    return;
-  }
-  
-  const transport = transports[sessionId];
-    if (!transport || !(transport instanceof SSEServerTransport)) {
-    res.status(404).json({
-      jsonrpc: '2.0',
-      error: { code: -32001, message: 'Session not found or not an SSE session' },
-      id: rpcId
-    });
-    return;
-  }
-  
-  try {
-    await transport.handlePostMessage(req, res, body);
-  } catch (error) {
-    Logger.error('mcp-server', 'SSE message handling error', error as Error);
-    if (!res.headersSent) {
-      res.status(500).json({
-        jsonrpc: '2.0',
-        error: { code: -32603, message: 'Internal server error handling message' },
-        id: rpcId
-      });
-    }
-  }
-});
 
 // Session cleanup endpoint
 app.delete('/mcp', async (req, res) => {
