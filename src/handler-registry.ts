@@ -27,15 +27,14 @@ export class HandlerRegistry {
   public hasHandler(toolName: string): boolean {
     return this.handlers.has(toolName);
   }
-
-  public async executeHandler(toolName: string, endpoint: Endpoint, params: Record<string, any>): Promise<any> {
+  public async executeHandler(toolName: string, endpoint: Endpoint, params: Record<string, any>, sessionId?: string): Promise<any> {
     const handler = this.handlers.get(toolName);
     if (handler) {
       return await handler(endpoint, params);
     }
     
-    // Fall back to default SFCC client
-    return await this.sfccClient.makeRequest(endpoint, params);
+    // Fall back to default SFCC client with session support
+    return await this.sfccClient.makeRequest(endpoint, params, sessionId);
   }
 
   private registerDefaultHandlers(): void {
