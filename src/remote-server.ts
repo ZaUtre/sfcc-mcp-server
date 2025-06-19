@@ -159,6 +159,110 @@ app.get('/.well-known/oauth-authorization-server', (req, res) => {
   });
 });
 
+// Endpoint to authorize with server defaults
+app.post('/authorize-with-defaults', express.json(), async (req: express.Request, res: express.Response) => {
+  try {
+    const config = configManager.getConfig();
+    
+    if (!config.adminClientId || !config.adminClientSecret || !config.apiBase) {
+      res.json({ 
+        success: false, 
+        error: 'Server default credentials are not configured properly.' 
+      });
+      return;
+    }
+
+    // Validate server credentials against SFCC OAuth endpoint
+    const tokenUrl = `https://account.demandware.com/dwsso/oauth2/access_token`;
+    
+    const formData = new URLSearchParams();
+    formData.append('grant_type', 'client_credentials');
+    formData.append('client_id', config.adminClientId);
+    formData.append('client_secret', config.adminClientSecret);
+    
+    const response = await fetch(tokenUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded'
+      },
+      body: formData.toString()
+    });
+    
+    if (response.ok) {
+      // Server credentials are valid, generate auth code
+      const sessionId = uuidv4();
+      const authCode = 'auth_' + Math.random().toString(36).substring(2, 15) + '_' + Date.now();
+      
+      userCredentials[sessionId] = {
+        clientId: config.adminClientId,
+        clientSecret: config.adminClientSecret,
+        apiBase: config.apiBase,
+        sessionId
+      };
+      
+      authCodes[authCode] = sessionId;
+      
+      // Clean up old auth codes
+      setTimeout(() => {
+        delete authCodes[authCode];
+      }, 10 * 60 * 1000); // 10 minutes
+      
+      res.json({ success: true, authCode });
+    } else {
+      const errorText = await response.text();
+      Logger.error('default', `Server default credential validation failed: ${response.status} ${errorText}`);
+      res.json({ 
+        success: false, 
+        error: 'Server default credentials are invalid. Please check server configuration.' 
+      });
+    }
+  } catch (error) {
+    Logger.error('default', 'Error validating server default credentials', error as Error);
+    res.json({ 
+      success: false, 
+      error: 'Error validating server credentials. Please try again.' 
+    });
+  }
+});
+
+// Download OCAPI Business Manager configuration with client ID
+app.get('/download-ocapi-config/:clientId', async (req, res) => {
+  const { clientId } = req.params;
+  
+  if (!clientId || clientId.trim() === '') {
+    res.status(400).json({ error: 'Client ID is required' });
+    return;
+  }
+
+  // Read the template OCAPI config file and replace the client ID
+  const fs = await import('fs');
+  const path = await import('path');
+  const { fileURLToPath } = await import('url');
+  const __filename = fileURLToPath(import.meta.url);
+  const __dirname = path.dirname(__filename);
+  
+  try {
+    const configPath = path.join(__dirname, '../ocapi-bm-config.json');
+    const configTemplate = fs.readFileSync(configPath, 'utf8');
+    const configData = JSON.parse(configTemplate);
+    
+    // Update the client ID in the config
+    if (configData.clients && configData.clients.length > 0) {
+      configData.clients[0].client_id = clientId.trim();
+    }
+    
+    // Set headers for file download
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Content-Disposition', `attachment; filename="ocapi-bm-config-${clientId.trim()}.json"`);
+    
+    // Send the modified config
+    res.json(configData);
+  } catch (error) {
+    Logger.error('default', 'Error generating OCAPI config file', error as Error);
+    res.status(500).json({ error: 'Error generating config file' });
+  }
+});
+
 app.get('/authorize', (req, res) => {
   // SFCC credentials collection page
   res.send(`
@@ -182,18 +286,31 @@ app.get('/authorize', (req, res) => {
             button { 
                 background: #007cba; 
                 color: white; 
-                padding: 15px 30px; 
+                padding: 12px 20px; 
                 border: none; 
                 border-radius: 5px; 
-                font-size: 16px; 
+                font-size: 14px; 
                 cursor: pointer; 
-                width: 100%;
-                margin-top: 20px;
+                margin: 5px;
             }
             button:hover { background: #005a87; }
             button:disabled { background: #ccc; cursor: not-allowed; }
+            .primary-btn { 
+                width: 100%;
+                margin-top: 20px;
+                padding: 15px 30px;
+                font-size: 16px;
+            }
+            .secondary-btn { 
+                background: #6c757d; 
+                font-size: 12px;
+                padding: 8px 12px;
+            }
+            .secondary-btn:hover { background: #5a6268; }
             .error { color: red; margin-top: 10px; }
+            .success { color: green; margin-top: 10px; }
             .description { text-align: left; margin-bottom: 30px; color: #666; }
+            .button-group { text-align: center; margin-bottom: 15px; }
         </style>
     </head>
     <body>
@@ -201,6 +318,14 @@ app.get('/authorize', (req, res) => {
             <h1>SFCC MCP Server Authorization</h1>
             <div class="description">
                 <p>Please provide your SFCC credentials to authorize access:</p>
+                <p><small><strong>Tip:</strong> Enter your Client ID and click "Download OCAPI Config" to get a pre-configured OCAPI Business Manager settings file with your Client ID.</small></p>
+            </div>
+            
+            <div class="button-group">
+                <button type="button" id="authorizeWithDefaultsBtn" class="secondary-btn">Authorize with Server Defaults</button>
+                <button type="button" id="loadStoredBtn" class="secondary-btn">Load Stored Credentials</button>
+                <button type="button" id="clearStoredBtn" class="secondary-btn">Clear Stored</button>
+                <button type="button" id="downloadConfigBtn" class="secondary-btn">Download OCAPI Config</button>
             </div>
             
             <form id="authForm">
@@ -222,15 +347,344 @@ app.get('/authorize', (req, res) => {
                            placeholder="e.g., https://your-instance.api.commercecloud.salesforce.com">
                 </div>
                 
-                <button type="submit" id="authorizeBtn">Authorize Access</button>
+                <button type="submit" id="authorizeBtn" class="primary-btn">Authorize Access</button>
                 <div id="status" class="error"></div>
             </form>
         </div>
         <script>
+            // Local storage keys
+            const STORAGE_KEYS = {
+                CLIENT_ID: 'sfcc_mcp_client_id',
+                CLIENT_SECRET: 'sfcc_mcp_client_secret',
+                API_BASE: 'sfcc_mcp_api_base'
+            };
+
+            // Load stored credentials on page load
+            document.addEventListener('DOMContentLoaded', function() {
+                loadStoredCredentials();
+            });
+
+            // Event listeners
             document.getElementById('authForm').addEventListener('submit', function(e) {
                 e.preventDefault();
                 authorize();
             });
+
+            document.getElementById('authorizeWithDefaultsBtn').addEventListener('click', authorizeWithDefaults);
+            document.getElementById('loadStoredBtn').addEventListener('click', loadStoredCredentials);
+            document.getElementById('clearStoredBtn').addEventListener('click', clearStoredCredentials);
+            document.getElementById('downloadConfigBtn').addEventListener('click', downloadOcapiConfig);
+
+            // Authorize with server defaults (no form validation needed)
+            async function authorizeWithDefaults() {
+                const button = document.getElementById('authorizeWithDefaultsBtn');
+                const status = document.getElementById('status');
+                const originalText = button.textContent;
+                
+                // Disable button
+                button.disabled = true;
+                button.textContent = 'Authorizing...';
+                status.textContent = '';
+                
+                try {
+                    // Use server defaults for authorization
+                    const response = await fetch('/authorize-with-defaults', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        }
+                    });
+                    
+                    const result = await response.json();
+                    
+                    if (result.success) {
+                        // Get URL parameters for OAuth flow
+                        const urlParams = new URLSearchParams(window.location.search);
+                        const redirectUri = urlParams.get('redirect_uri');
+                        const state = urlParams.get('state');
+                        const codeChallenge = urlParams.get('code_challenge');
+                        
+                        // Generate authorization code with session info
+                        const authCode = result.authCode;
+                        
+                        const callbackUrl = new URL('/callback', window.location.origin);
+                        callbackUrl.searchParams.set('code', authCode);
+                        if (state) callbackUrl.searchParams.set('state', state);
+                        if (redirectUri) callbackUrl.searchParams.set('redirect_uri', redirectUri);
+                        if (codeChallenge) callbackUrl.searchParams.set('code_challenge', codeChallenge);
+                        
+                        window.location.href = callbackUrl.toString();
+                    } else {
+                        status.textContent = result.error || 'Server authorization failed. Please check server configuration.';
+                        status.className = 'error';
+                        button.disabled = false;
+                        button.textContent = originalText;
+                    }
+                } catch (error) {
+                    status.textContent = 'Error during server authorization. Please try again.';
+                    status.className = 'error';
+                    button.disabled = false;
+                    button.textContent = originalText;
+                }
+            }
+
+            // Load default credentials from server
+            async function loadDefaults() {
+                const status = document.getElementById('status');
+                
+                try {
+                    const response = await fetch('/default-credentials');
+                    const defaults = await response.json();
+                    
+                    document.getElementById('clientId').value = defaults.clientId || '';
+                    // Don't populate secret from server for security
+                    document.getElementById('apiBase').value = defaults.apiBase || '';
+                    
+                    status.textContent = 'Default values loaded from server configuration.';
+                    status.className = 'success';
+                    setTimeout(() => {
+                        status.textContent = '';
+                        status.className = 'error';
+                    }, 3000);
+                } catch (error) {
+                    status.textContent = 'Error loading defaults: ' + error.message;
+                    status.className = 'error';
+                }
+            }
+
+            // Load credentials from localStorage
+            function loadStoredCredentials() {
+                const status = document.getElementById('status');
+                
+                const clientId = localStorage.getItem(STORAGE_KEYS.CLIENT_ID);
+                const clientSecret = localStorage.getItem(STORAGE_KEYS.CLIENT_SECRET);
+                const apiBase = localStorage.getItem(STORAGE_KEYS.API_BASE);
+                
+                if (clientId || clientSecret || apiBase) {
+                    document.getElementById('clientId').value = clientId || '';
+                    document.getElementById('clientSecret').value = clientSecret || '';
+                    document.getElementById('apiBase').value = apiBase || '';
+                    
+                    status.textContent = 'Stored credentials loaded from browser.';
+                    status.className = 'success';
+                    setTimeout(() => {
+                        status.textContent = '';
+                        status.className = 'error';
+                    }, 3000);
+                } else {
+                    status.textContent = 'No stored credentials found.';
+                    status.className = 'error';
+                    setTimeout(() => {
+                        status.textContent = '';
+                    }, 3000);
+                }
+            }
+
+            // Clear stored credentials
+            function clearStoredCredentials() {
+                const status = document.getElementById('status');
+                
+                localStorage.removeItem(STORAGE_KEYS.CLIENT_ID);
+                localStorage.removeItem(STORAGE_KEYS.CLIENT_SECRET);
+                localStorage.removeItem(STORAGE_KEYS.API_BASE);
+                
+                document.getElementById('clientId').value = '';
+                document.getElementById('clientSecret').value = '';
+                document.getElementById('apiBase').value = '';
+                
+                status.textContent = 'Stored credentials cleared.';
+                status.className = 'success';
+                setTimeout(() => {
+                    status.textContent = '';
+                    status.className = 'error';
+                }, 3000);
+            }
+
+            // Store credentials in localStorage
+            function storeCredentials(clientId, clientSecret, apiBase) {
+                localStorage.setItem(STORAGE_KEYS.CLIENT_ID, clientId);
+                localStorage.setItem(STORAGE_KEYS.CLIENT_SECRET, clientSecret);
+                localStorage.setItem(STORAGE_KEYS.API_BASE, apiBase);
+            }
+
+            // Download OCAPI Business Manager config file with client ID
+            function downloadOcapiConfig() {
+                const status = document.getElementById('status');
+                const clientId = document.getElementById('clientId').value.trim();
+                
+                if (!clientId) {
+                    status.textContent = 'Please enter a Client ID before downloading the config.';
+                    status.className = 'error';
+                    setTimeout(() => {
+                        status.textContent = '';
+                    }, 3000);
+                    return;
+                }
+                
+                // Create the OCAPI config object with the entered client ID
+                const ocapiConfig = {
+                    "clients": [
+                        {
+                            "client_id": clientId,
+                            "resources": [
+                                {
+                                    "resource_id": "/alerts/*",
+                                    "methods": ["get"],
+                                    "read_attributes": "(**)",
+                                    "write_attributes": "(**)"
+                                },
+                                {
+                                    "resource_id": "/catalogs",
+                                    "methods": ["get"],
+                                    "read_attributes": "(**)",
+                                    "write_attributes": "(**)"
+                                },
+                                {
+                                    "resource_id": "/catalogs/**",
+                                    "methods": ["get"],
+                                    "read_attributes": "(**)",
+                                    "write_attributes": "(**)"
+                                },
+                                {
+                                    "resource_id": "/code_versions/*",
+                                    "methods": ["get"],
+                                    "read_attributes": "(**)",
+                                    "write_attributes": "(**)"
+                                },
+                                {
+                                    "resource_id": "/custom_object_definitions/**",
+                                    "methods": ["get"],
+                                    "read_attributes": "(**)",
+                                    "write_attributes": "(**)"
+                                },
+                                {
+                                    "resource_id": "/customer_lists/*",
+                                    "methods": ["get"],
+                                    "read_attributes": "(**)",
+                                    "write_attributes": "(**)"
+                                },
+                                {
+                                    "resource_id": "/global_preferences/*",
+                                    "methods": ["get"],
+                                    "read_attributes": "(**)",
+                                    "write_attributes": "(**)"
+                                },
+                                {
+                                    "resource_id": "/inventory_lists/*",
+                                    "methods": ["get"],
+                                    "read_attributes": "(**)",
+                                    "write_attributes": "(**)"
+                                },
+                                {
+                                    "resource_id": "/jobs/*",
+                                    "methods": ["get"],
+                                    "read_attributes": "(**)",
+                                    "write_attributes": "(**)"
+                                },
+                                {
+                                    "resource_id": "/libraries/**",
+                                    "methods": ["get"],
+                                    "read_attributes": "(**)",
+                                    "write_attributes": "(**)"
+                                },
+                                {
+                                    "resource_id": "/locale_info/*",
+                                    "methods": ["get"],
+                                    "read_attributes": "(**)",
+                                    "write_attributes": "(**)"
+                                },
+                                {
+                                    "resource_id": "/metrics/*",
+                                    "methods": ["get"],
+                                    "read_attributes": "(**)",
+                                    "write_attributes": "(**)"
+                                },
+                                {
+                                    "resource_id": "/log_requests/**",
+                                    "methods": ["get"],
+                                    "read_attributes": "(**)",
+                                    "write_attributes": "(**)"
+                                },
+                                {
+                                    "resource_id": "/ocapi_configs/*",
+                                    "methods": ["get"],
+                                    "read_attributes": "(**)",
+                                    "write_attributes": "(**)"
+                                },
+                                {
+                                    "resource_id": "/permissions/*",
+                                    "methods": ["get"],
+                                    "read_attributes": "(**)",
+                                    "write_attributes": "(**)"
+                                },
+                                {
+                                    "resource_id": "/products/*",
+                                    "methods": ["get"],
+                                    "read_attributes": "(**)",
+                                    "write_attributes": "(**)"
+                                },
+                                {
+                                    "resource_id": "/roles/*",
+                                    "methods": ["get"],
+                                    "read_attributes": "(**)",
+                                    "write_attributes": "(**)"
+                                },
+                                {
+                                    "resource_id": "/settings/**",
+                                    "methods": ["get"],
+                                    "read_attributes": "(**)",
+                                    "write_attributes": "(**)"
+                                },
+                                {
+                                    "resource_id": "/site_preferences/**",
+                                    "methods": ["get"],
+                                    "read_attributes": "(**)",
+                                    "write_attributes": "(**)"
+                                },
+                                {
+                                    "resource_id": "/sites/*",
+                                    "methods": ["get"],
+                                    "read_attributes": "(**)",
+                                    "write_attributes": "(**)"
+                                },
+                                {
+                                    "resource_id": "/system_object_definitions/*",
+                                    "methods": ["get"],
+                                    "read_attributes": "(**)",
+                                    "write_attributes": "(**)"
+                                },
+                                {
+                                    "resource_id": "/users/*",
+                                    "methods": ["get"],
+                                    "read_attributes": "(**)",
+                                    "write_attributes": "(**)"
+                                }
+                            ]
+                        }
+                    ]
+                };
+                
+                // Create blob and download
+                const jsonString = JSON.stringify(ocapiConfig, null, 2);
+                const blob = new Blob([jsonString], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                
+                // Create download link
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'ocapi-bm-config-' + clientId + '.json';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                
+                status.textContent = 'OCAPI config file downloaded with Client ID: ' + clientId;
+                status.className = 'success';
+                setTimeout(() => {
+                    status.textContent = '';
+                    status.className = 'error';
+                }, 3000);
+            }
             
             async function authorize() {
                 const form = document.getElementById('authForm');
@@ -245,6 +699,7 @@ app.get('/authorize', (req, res) => {
                 // Validate inputs
                 if (!clientId || !clientSecret || !apiBase) {
                     status.textContent = 'All fields are required.';
+                    status.className = 'error';
                     return;
                 }
                 
@@ -270,6 +725,9 @@ app.get('/authorize', (req, res) => {
                     const result = await response.json();
                     
                     if (result.success) {
+                        // Store credentials in localStorage for future use
+                        storeCredentials(clientId, clientSecret, apiBase);
+                        
                         // Get URL parameters for OAuth flow
                         const urlParams = new URLSearchParams(window.location.search);
                         const redirectUri = urlParams.get('redirect_uri');
@@ -288,11 +746,13 @@ app.get('/authorize', (req, res) => {
                         window.location.href = callbackUrl.toString();
                     } else {
                         status.textContent = result.error || 'Invalid credentials. Please check your SFCC settings.';
+                        status.className = 'error';
                         button.disabled = false;
                         button.textContent = 'Authorize Access';
                     }
                 } catch (error) {
                     status.textContent = 'Error validating credentials. Please try again.';
+                    status.className = 'error';
                     button.disabled = false;
                     button.textContent = 'Authorize Access';
                 }
