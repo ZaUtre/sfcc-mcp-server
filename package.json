@@ -1,15 +1,16 @@
 {
   "type": "module",
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "bin": {
     "sfcc-mcp": "./build/index.js"
   },  "scripts": {
-    "build": "tsc && chmod 755 build/index.js && cp src/endpoints.json build/",
-    "start": "node build/index.js",
-    "start:remote": "node build/index.js --remote",
-    "dev:stdio": "npm run build && npm start",
-    "dev:remote": "npm run build && npm start:remote",
-    "test:ocapi": "node test-ocapi-product.js",
-    "test:catalogs": "node test-ocapi-product.js"
+    "build": "tsc && cp src/endpoints.json build/",
+    "start": "node build/index.js --remote",
+    "start:stdio": "node build/index.js",
+    "dev:stdio": "npm run build && npm run start:stdio",
+    "dev:remote": "npm run build && npm start"
   },
   "files": [
     "build"
