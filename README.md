@@ -9,6 +9,9 @@ A Model Context Protocol (MCP) server for interacting with Salesforce Commerce C
 - Support for both GET and POST requests
 - OCAPI authentication using client credentials flow
 - Support for SFCC Data API endpoints, including product search
+- **Remote mode**: HTTP-based server with OAuth authentication
+- **Per-session configuration**: Each session can use different SFCC credentials and API endpoints
+- **Multi-tenant support**: Multiple clients can connect to different SFCC instances simultaneously
 
 ## Installation
 

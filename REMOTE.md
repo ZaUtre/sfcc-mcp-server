@@ -64,11 +64,19 @@ The remote server uses a simplified authentication system for demonstration. In 
 - Supabase Auth
 - Your existing authentication system
 
+### Per-Session SFCC Configuration
+
+Each remote session can use different SFCC credentials and API endpoints. This allows multiple users or environments to connect to different SFCC instances simultaneously.
+
 ### Getting an Access Token
 
 1. Visit the authorization endpoint: `http://localhost:3000/authorize`
-2. Click "Authorize Access"
-3. The demo will generate a token that you can use
+2. Fill in your SFCC credentials:
+   - **SFCC Admin Client ID**: Your SFCC admin API client ID
+   - **SFCC Admin Client Secret**: Your SFCC admin API client secret  
+   - **SFCC API Base URL**: Your SFCC instance URL (e.g., `https://your-instance.api.commercecloud.salesforce.com`)
+3. Click "Authorize Access"
+4. The system will validate your credentials and generate a session token
 
 ### Using the Token
 
@@ -80,6 +88,15 @@ curl -H "Authorization: Bearer your_token_here" \
      -d '{"jsonrpc":"2.0","method":"initialize","params":{},"id":1}' \
      http://localhost:3000/mcp
 ```
+
+### Session Isolation
+
+Each session maintains its own:
+- SFCC API credentials
+- Authentication tokens
+- API base URL configuration
+
+This enables multi-tenant usage where different clients can connect to different SFCC instances without interference.
 
 ## Testing with MCP Clients
 

@@ -33,17 +33,8 @@ export class HandlerRegistry {
       return await handler(endpoint, params);
     }
     
-    // Fall back to default SFCC client
-    // Check if we have session-specific credentials
-    if (sessionId) {
-      const sessionCredentials = configManager.getSessionCredentials(sessionId);
-      if (sessionCredentials) {
-        return await this.sfccClient.makeRequestWithCredentials(endpoint, params, sessionCredentials);
-      }
-    }
-    
-    // Use default credentials
-    return await this.sfccClient.makeRequest(endpoint, params);
+    // Fall back to default SFCC client with session support
+    return await this.sfccClient.makeRequest(endpoint, params, sessionId);
   }
 
   private registerDefaultHandlers(): void {

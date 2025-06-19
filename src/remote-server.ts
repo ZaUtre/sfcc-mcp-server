@@ -571,6 +571,16 @@ app.post('/mcp', async (req, res) => {
   if (isInitRequest) {
     // Create new session for initialize requests
     effectiveSessionId = uuidv4();
+    
+    // Transfer credentials from auth to session if authenticated
+    if (authResult.authObject?.sessionId && authResult.authObject?.clientId) {
+      configManager.setSessionCredentials(effectiveSessionId, {
+        clientId: authResult.authObject.clientId,
+        clientSecret: authResult.authObject.clientSecret,
+        apiBase: authResult.authObject.apiBase
+      });
+    }
+    
     transport = await createAndConnectTransport(effectiveSessionId, mcpServer, transports);
     
     // Set session ID in response header
