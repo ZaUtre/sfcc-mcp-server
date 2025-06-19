@@ -1,0 +1,32 @@
+runtime: nodejs20
+
+automatic_scaling:
+  min_instances: 0
+  max_instances: 10
+
+env_variables:
+  NODE_ENV: production
+  # Add your SFCC configuration here:
+  # SFCC_API_BASE: "https://your-sfcc-instance.demandware.net"
+  # SFCC_ADMIN_CLIENT_ID: your-client-id
+  # SFCC_ADMIN_CLIENT_SECRET: your-client-secret
+  # SFCC_SITE_ID: your-site-id
+
+readiness_check:
+  path: "/health"
+  check_interval_sec: 5
+  timeout_sec: 4
+  failure_threshold: 2
+  success_threshold: 2
+
+liveness_check:
+  path: "/health"
+  check_interval_sec: 30
+  timeout_sec: 4
+  failure_threshold: 4
+  success_threshold: 2
+
+resources:
+  cpu: 1
+  memory_gb: 0.5
+  disk_size_gb: 10

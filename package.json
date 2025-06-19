@@ -1,29 +1,37 @@
 {
   "type": "module",
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "bin": {
     "sfcc-mcp": "./build/index.js"
-  },
-  "scripts": {
-    "build": "tsc && chmod 755 build/index.js && cp src/endpoints.json build/",
-    "test:ocapi": "node test-ocapi-product.js",
-    "test:catalogs": "node test-ocapi-product.js"
+  },  "scripts": {
+    "build": "tsc && cp src/endpoints.json build/",
+    "start": "node build/index.js --remote",
+    "start:stdio": "node build/index.js",
+    "dev:stdio": "npm run build && npm run start:stdio",
+    "dev:remote": "npm run build && npm start"
   },
   "files": [
     "build"
-  ],
-  "dependencies": {
+  ],  "dependencies": {
     "@modelcontextprotocol/sdk": "^1.7.0",
     "axios": "^1.8.4",
     "commerce-sdk": "^4.1.0",
+    "cors": "^2.8.5",
     "dotenv": "^16.4.7",
+    "express": "^4.21.1",
     "form-data": "^4.0.2",
     "loglevel": "^1.9.2",
     "node-fetch": "^3.3.2",
     "typescript": "^5.8.2",
+    "uuid": "^11.0.3",
     "zod": "^3.24.2"
-  },
-  "devDependencies": {
+  },  "devDependencies": {
+    "@types/cors": "^2.8.17",
+    "@types/express": "^5.0.0",
     "@types/node": "^22.13.14",
+    "@types/uuid": "^10.0.0",
     "openapi-typescript-codegen": "^0.29.0",
     "swagger-typescript-api": "^13.0.24"
   }
