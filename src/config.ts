@@ -14,6 +14,9 @@ export class ConfigManager {
   private static instance: ConfigManager;
   private config: SFCCConfig;
 
+  // Session-specific credentials storage
+  private sessionCredentials: Record<string, { clientId: string; clientSecret: string; apiBase: string }> = {};
+
   private constructor() {
     this.config = this.loadConfig();
   }
@@ -48,6 +51,18 @@ export class ConfigManager {
 
   public getRequestId(): string {
     return process.env.REQUEST_ID || 'default-request';
+  }
+
+  public setSessionCredentials(sessionId: string, credentials: { clientId: string; clientSecret: string; apiBase: string }) {
+    this.sessionCredentials[sessionId] = credentials;
+  }
+
+  public getSessionCredentials(sessionId: string) {
+    return this.sessionCredentials[sessionId];
+  }
+
+  public clearSessionCredentials(sessionId: string) {
+    delete this.sessionCredentials[sessionId];
   }
 }
 
