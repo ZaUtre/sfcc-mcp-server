@@ -15,7 +15,7 @@ export class ConfigManager {
   private config: SFCCConfig;
 
   // Session-specific credentials storage
-  private sessionCredentials: Record<string, { clientId: string; clientSecret: string; apiBase: string }> = {};
+  private sessionCredentials: Record<string, { clientId: string; clientSecret: string; apiBase: string; ocapiVersion?: string }> = {};
 
   private constructor() {
     this.config = this.loadConfig();
@@ -32,6 +32,7 @@ export class ConfigManager {
     const adminClientId = process.env.SFCC_ADMIN_CLIENT_ID || "";
     const adminClientSecret = process.env.SFCC_ADMIN_CLIENT_SECRET || "";
     const apiBase = process.env.SFCC_API_BASE || "";
+    const ocapiVersion = process.env.OCAPI_VERSION || "v24_5";
 
     if (!adminClientId || !adminClientSecret || !apiBase) {
       throw new Error("Missing required SFCC configuration. Please check your .env file.");
@@ -41,7 +42,8 @@ export class ConfigManager {
       adminClientId,
       adminClientSecret,
       apiBase,
-      userAgent: "sfcc-mcp-server/1.0"
+      userAgent: "sfcc-mcp-server/1.0",
+      ocapiVersion
     };
   }
 
@@ -53,7 +55,7 @@ export class ConfigManager {
     return process.env.REQUEST_ID || 'default-request';
   }
 
-  public setSessionCredentials(sessionId: string, credentials: { clientId: string; clientSecret: string; apiBase: string }) {
+  public setSessionCredentials(sessionId: string, credentials: { clientId: string; clientSecret: string; apiBase: string; ocapiVersion?: string }) {
     this.sessionCredentials[sessionId] = credentials;
   }
 

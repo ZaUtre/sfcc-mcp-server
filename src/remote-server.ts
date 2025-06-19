@@ -38,7 +38,7 @@ const transports: Record<string, any> = {};
 const pendingTransports: Record<string, any> = {};
 
 // Store user credentials temporarily (in production, use a secure session store)
-const userCredentials: Record<string, { clientId: string; clientSecret: string; apiBase: string; sessionId: string }> = {};
+const userCredentials: Record<string, { clientId: string; clientSecret: string; apiBase: string; sessionId: string; ocapiVersion?: string }> = {};
 const authCodes: Record<string, string> = {}; // Map auth codes to session IDs
 
 // Async local storage for session context
@@ -107,6 +107,7 @@ async function authenticateToken(req: express.Request, res: express.Response, rp
       clientId: credentials.clientId,
       clientSecret: credentials.clientSecret,
       apiBase: credentials.apiBase,
+      ocapiVersion: credentials.ocapiVersion || 'v24_5',
       scopes: ['sfcc:read', 'sfcc:write']
     };
 
@@ -197,7 +198,8 @@ app.post('/authorize-with-defaults', express.json(), async (req: express.Request
         clientId: config.adminClientId,
         clientSecret: config.adminClientSecret,
         apiBase: config.apiBase,
-        sessionId
+        sessionId,
+        ocapiVersion: config.ocapiVersion
       };
       
       authCodes[authCode] = sessionId;
@@ -228,6 +230,7 @@ app.post('/authorize-with-defaults', express.json(), async (req: express.Request
 // Download OCAPI Business Manager configuration with client ID
 app.get('/download-ocapi-config/:clientId', async (req, res) => {
   const { clientId } = req.params;
+  const { version } = req.query;
   
   if (!clientId || clientId.trim() === '') {
     res.status(400).json({ error: 'Client ID is required' });
@@ -249,6 +252,13 @@ app.get('/download-ocapi-config/:clientId', async (req, res) => {
     // Update the client ID in the config
     if (configData.clients && configData.clients.length > 0) {
       configData.clients[0].client_id = clientId.trim();
+    }
+    
+    // Update the OCAPI version if provided
+    if (version && typeof version === 'string') {
+      // Convert version format (e.g., v24_5 to 24.5)
+      const versionString = version.replace(/^v/, '').replace(/_/g, '.');
+      configData._v = versionString;
     }
     
     // Set headers for file download
@@ -347,6 +357,12 @@ app.get('/authorize', (req, res) => {
                            placeholder="e.g., https://your-instance.api.commercecloud.salesforce.com">
                 </div>
                 
+                <div class="form-group">
+                    <label for="ocapiVersion">OCAPI Version:</label>
+                    <input type="text" id="ocapiVersion" name="ocapiVersion" 
+                           placeholder="e.g., v24_5" value="v24_5">
+                </div>
+                
                 <button type="submit" id="authorizeBtn" class="primary-btn">Authorize Access</button>
                 <div id="status" class="error"></div>
             </form>
@@ -356,12 +372,19 @@ app.get('/authorize', (req, res) => {
             const STORAGE_KEYS = {
                 CLIENT_ID: 'sfcc_mcp_client_id',
                 CLIENT_SECRET: 'sfcc_mcp_client_secret',
-                API_BASE: 'sfcc_mcp_api_base'
+                API_BASE: 'sfcc_mcp_api_base',
+                OCAPI_VERSION: 'sfcc_mcp_ocapi_version'
             };
 
             // Load stored credentials on page load
             document.addEventListener('DOMContentLoaded', function() {
                 loadStoredCredentials();
+                
+                // Set default OCAPI version if not already set
+                const ocapiVersionField = document.getElementById('ocapiVersion');
+                if (!ocapiVersionField.value) {
+                    ocapiVersionField.value = 'v24_5';
+                }
             });
 
             // Event listeners
@@ -459,11 +482,13 @@ app.get('/authorize', (req, res) => {
                 const clientId = localStorage.getItem(STORAGE_KEYS.CLIENT_ID);
                 const clientSecret = localStorage.getItem(STORAGE_KEYS.CLIENT_SECRET);
                 const apiBase = localStorage.getItem(STORAGE_KEYS.API_BASE);
+                const ocapiVersion = localStorage.getItem(STORAGE_KEYS.OCAPI_VERSION);
                 
-                if (clientId || clientSecret || apiBase) {
+                if (clientId || clientSecret || apiBase || ocapiVersion) {
                     document.getElementById('clientId').value = clientId || '';
                     document.getElementById('clientSecret').value = clientSecret || '';
                     document.getElementById('apiBase').value = apiBase || '';
+                    document.getElementById('ocapiVersion').value = ocapiVersion || 'v24_5';
                     
                     status.textContent = 'Stored credentials loaded from browser.';
                     status.className = 'success';
@@ -487,10 +512,12 @@ app.get('/authorize', (req, res) => {
                 localStorage.removeItem(STORAGE_KEYS.CLIENT_ID);
                 localStorage.removeItem(STORAGE_KEYS.CLIENT_SECRET);
                 localStorage.removeItem(STORAGE_KEYS.API_BASE);
+                localStorage.removeItem(STORAGE_KEYS.OCAPI_VERSION);
                 
                 document.getElementById('clientId').value = '';
                 document.getElementById('clientSecret').value = '';
                 document.getElementById('apiBase').value = '';
+                document.getElementById('ocapiVersion').value = 'v24_5';
                 
                 status.textContent = 'Stored credentials cleared.';
                 status.className = 'success';
@@ -501,16 +528,18 @@ app.get('/authorize', (req, res) => {
             }
 
             // Store credentials in localStorage
-            function storeCredentials(clientId, clientSecret, apiBase) {
+            function storeCredentials(clientId, clientSecret, apiBase, ocapiVersion) {
                 localStorage.setItem(STORAGE_KEYS.CLIENT_ID, clientId);
                 localStorage.setItem(STORAGE_KEYS.CLIENT_SECRET, clientSecret);
                 localStorage.setItem(STORAGE_KEYS.API_BASE, apiBase);
+                localStorage.setItem(STORAGE_KEYS.OCAPI_VERSION, ocapiVersion || 'v24_5');
             }
 
             // Download OCAPI Business Manager config file with client ID
             function downloadOcapiConfig() {
                 const status = document.getElementById('status');
                 const clientId = document.getElementById('clientId').value.trim();
+                const ocapiVersion = document.getElementById('ocapiVersion').value.trim() || 'v24_5';
                 
                 if (!clientId) {
                     status.textContent = 'Please enter a Client ID before downloading the config.';
@@ -521,164 +550,11 @@ app.get('/authorize', (req, res) => {
                     return;
                 }
                 
-                // Create the OCAPI config object with the entered client ID
-                const ocapiConfig = {
-                    "clients": [
-                        {
-                            "client_id": clientId,
-                            "resources": [
-                                {
-                                    "resource_id": "/alerts/*",
-                                    "methods": ["get"],
-                                    "read_attributes": "(**)",
-                                    "write_attributes": "(**)"
-                                },
-                                {
-                                    "resource_id": "/catalogs",
-                                    "methods": ["get"],
-                                    "read_attributes": "(**)",
-                                    "write_attributes": "(**)"
-                                },
-                                {
-                                    "resource_id": "/catalogs/**",
-                                    "methods": ["get"],
-                                    "read_attributes": "(**)",
-                                    "write_attributes": "(**)"
-                                },
-                                {
-                                    "resource_id": "/code_versions/*",
-                                    "methods": ["get"],
-                                    "read_attributes": "(**)",
-                                    "write_attributes": "(**)"
-                                },
-                                {
-                                    "resource_id": "/custom_object_definitions/**",
-                                    "methods": ["get"],
-                                    "read_attributes": "(**)",
-                                    "write_attributes": "(**)"
-                                },
-                                {
-                                    "resource_id": "/customer_lists/*",
-                                    "methods": ["get"],
-                                    "read_attributes": "(**)",
-                                    "write_attributes": "(**)"
-                                },
-                                {
-                                    "resource_id": "/global_preferences/*",
-                                    "methods": ["get"],
-                                    "read_attributes": "(**)",
-                                    "write_attributes": "(**)"
-                                },
-                                {
-                                    "resource_id": "/inventory_lists/*",
-                                    "methods": ["get"],
-                                    "read_attributes": "(**)",
-                                    "write_attributes": "(**)"
-                                },
-                                {
-                                    "resource_id": "/jobs/*",
-                                    "methods": ["get"],
-                                    "read_attributes": "(**)",
-                                    "write_attributes": "(**)"
-                                },
-                                {
-                                    "resource_id": "/libraries/**",
-                                    "methods": ["get"],
-                                    "read_attributes": "(**)",
-                                    "write_attributes": "(**)"
-                                },
-                                {
-                                    "resource_id": "/locale_info/*",
-                                    "methods": ["get"],
-                                    "read_attributes": "(**)",
-                                    "write_attributes": "(**)"
-                                },
-                                {
-                                    "resource_id": "/metrics/*",
-                                    "methods": ["get"],
-                                    "read_attributes": "(**)",
-                                    "write_attributes": "(**)"
-                                },
-                                {
-                                    "resource_id": "/log_requests/**",
-                                    "methods": ["get"],
-                                    "read_attributes": "(**)",
-                                    "write_attributes": "(**)"
-                                },
-                                {
-                                    "resource_id": "/ocapi_configs/*",
-                                    "methods": ["get"],
-                                    "read_attributes": "(**)",
-                                    "write_attributes": "(**)"
-                                },
-                                {
-                                    "resource_id": "/permissions/*",
-                                    "methods": ["get"],
-                                    "read_attributes": "(**)",
-                                    "write_attributes": "(**)"
-                                },
-                                {
-                                    "resource_id": "/products/*",
-                                    "methods": ["get"],
-                                    "read_attributes": "(**)",
-                                    "write_attributes": "(**)"
-                                },
-                                {
-                                    "resource_id": "/roles/*",
-                                    "methods": ["get"],
-                                    "read_attributes": "(**)",
-                                    "write_attributes": "(**)"
-                                },
-                                {
-                                    "resource_id": "/settings/**",
-                                    "methods": ["get"],
-                                    "read_attributes": "(**)",
-                                    "write_attributes": "(**)"
-                                },
-                                {
-                                    "resource_id": "/site_preferences/**",
-                                    "methods": ["get"],
-                                    "read_attributes": "(**)",
-                                    "write_attributes": "(**)"
-                                },
-                                {
-                                    "resource_id": "/sites/*",
-                                    "methods": ["get"],
-                                    "read_attributes": "(**)",
-                                    "write_attributes": "(**)"
-                                },
-                                {
-                                    "resource_id": "/system_object_definitions/*",
-                                    "methods": ["get"],
-                                    "read_attributes": "(**)",
-                                    "write_attributes": "(**)"
-                                },
-                                {
-                                    "resource_id": "/users/*",
-                                    "methods": ["get"],
-                                    "read_attributes": "(**)",
-                                    "write_attributes": "(**)"
-                                }
-                            ]
-                        }
-                    ]
-                };
+                // Download from server endpoint with version parameter
+                const downloadUrl = '/download-ocapi-config/' + encodeURIComponent(clientId) + '?version=' + encodeURIComponent(ocapiVersion);
+                window.location.href = downloadUrl;
                 
-                // Create blob and download
-                const jsonString = JSON.stringify(ocapiConfig, null, 2);
-                const blob = new Blob([jsonString], { type: 'application/json' });
-                const url = URL.createObjectURL(blob);
-                
-                // Create download link
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = 'ocapi-bm-config-' + clientId + '.json';
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                URL.revokeObjectURL(url);
-                
-                status.textContent = 'OCAPI config file downloaded with Client ID: ' + clientId;
+                status.textContent = 'OCAPI config download started.';
                 status.className = 'success';
                 setTimeout(() => {
                     status.textContent = '';
@@ -695,10 +571,11 @@ app.get('/authorize', (req, res) => {
                 const clientId = document.getElementById('clientId').value.trim();
                 const clientSecret = document.getElementById('clientSecret').value.trim();
                 const apiBase = document.getElementById('apiBase').value.trim();
+                const ocapiVersion = document.getElementById('ocapiVersion').value.trim() || 'v24_5';
                 
                 // Validate inputs
                 if (!clientId || !clientSecret || !apiBase) {
-                    status.textContent = 'All fields are required.';
+                    status.textContent = 'Client ID, Client Secret, and API Base URL are required.';
                     status.className = 'error';
                     return;
                 }
@@ -718,7 +595,8 @@ app.get('/authorize', (req, res) => {
                         body: JSON.stringify({
                             clientId: clientId,
                             clientSecret: clientSecret,
-                            apiBase: apiBase
+                            apiBase: apiBase,
+                            ocapiVersion: ocapiVersion
                         })
                     });
                     
@@ -726,7 +604,7 @@ app.get('/authorize', (req, res) => {
                     
                     if (result.success) {
                         // Store credentials in localStorage for future use
-                        storeCredentials(clientId, clientSecret, apiBase);
+                        storeCredentials(clientId, clientSecret, apiBase, ocapiVersion);
                         
                         // Get URL parameters for OAuth flow
                         const urlParams = new URLSearchParams(window.location.search);
@@ -824,10 +702,10 @@ app.post('/register', express.json(), (req, res) => {
 
 // Credential validation endpoint
 app.post('/validate-credentials', express.json(), async (req: express.Request, res: express.Response) => {
-  const { clientId, clientSecret, apiBase } = req.body;
+  const { clientId, clientSecret, apiBase, ocapiVersion } = req.body;
   
   if (!clientId || !clientSecret || !apiBase) {
-    res.json({ success: false, error: 'All fields are required' });
+    res.json({ success: false, error: 'Client ID, Client Secret, and API Base URL are required' });
     return;
   }
   
@@ -857,7 +735,8 @@ app.post('/validate-credentials', express.json(), async (req: express.Request, r
         clientId,
         clientSecret,
         apiBase,
-        sessionId
+        sessionId,
+        ocapiVersion: ocapiVersion || 'v24_5'
       };
       
       authCodes[authCode] = sessionId;
@@ -1012,7 +891,8 @@ app.post('/mcp', async (req, res) => {
     configManager.setSessionCredentials(authObject.sessionId, {
       clientId: authObject.clientId,
       clientSecret: authObject.clientSecret,
-      apiBase: authObject.apiBase
+      apiBase: authObject.apiBase,
+      ocapiVersion: authObject.ocapiVersion
     });
   }
 
@@ -1037,7 +917,8 @@ app.post('/mcp', async (req, res) => {
       configManager.setSessionCredentials(effectiveSessionId, {
         clientId: authResult.authObject.clientId,
         clientSecret: authResult.authObject.clientSecret,
-        apiBase: authResult.authObject.apiBase
+        apiBase: authResult.authObject.apiBase,
+        ocapiVersion: authResult.authObject.ocapiVersion
       });
     }
     

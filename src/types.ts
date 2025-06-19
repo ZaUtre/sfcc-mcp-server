@@ -30,6 +30,7 @@ export interface SFCCConfig {
   adminClientSecret: string;
   apiBase: string;
   userAgent: string;
+  ocapiVersion: string;
 }
 
 export interface SearchQuery {

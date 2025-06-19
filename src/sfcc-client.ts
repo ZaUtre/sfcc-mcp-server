@@ -35,6 +35,7 @@ export class SFCCApiClient {
     const sessionCredentials = sessionId ? configManager.getSessionCredentials(sessionId) : null;
     const effectiveApiBase = sessionCredentials?.apiBase || config.apiBase;
     const effectiveClientId = sessionCredentials?.clientId || config.adminClientId;
+    const effectiveOcapiVersion = sessionCredentials?.ocapiVersion || config.ocapiVersion;
     
     try {
       const method = endpoint.method || 'GET';
@@ -43,7 +44,7 @@ export class SFCCApiClient {
       const accessToken = await this.authService.getAuthToken(sessionId);
       const path = this.replacePathParams(endpoint.path, params);
       
-      let url = `${effectiveApiBase}/s/-/dw/data/v24_5/${path}`;
+      let url = `${effectiveApiBase}/s/-/dw/data/${effectiveOcapiVersion}/${path}`;
       
       // Build query parameters
       const queryParams = new URLSearchParams();
