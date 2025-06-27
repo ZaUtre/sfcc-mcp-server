@@ -7,8 +7,7 @@
     "sfcc-mcp": "./build/index.js"
   },
   "scripts": {
-    "build": "tsc && cp src/endpoints.json build/",
-    "false_build": "tsc && cp src/endpoints.json build/",
+    "build": "tsc && copyfiles src/endpoints.json build/",
     "start": "node build/index.js --remote",
     "start:stdio": "node build/index.js",
     "dev:stdio": "npm run build && npm run start:stdio",
