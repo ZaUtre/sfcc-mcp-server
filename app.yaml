@@ -10,11 +10,10 @@ env_variables:
   NODE_ENV: production
   MCP_MODE: remote
   PORT: 8080
-  # Add your SFCC configuration here:
-  # SFCC_API_BASE: "https://your-sfcc-instance.demandware.net"
-  # SFCC_ADMIN_CLIENT_ID: your-client-id
-  # SFCC_ADMIN_CLIENT_SECRET: your-client-secret
-  # SFCC_SITE_ID: your-site-id
+  SFCC_API_BASE: "${SFCC_API_BASE}"
+  SFCC_ADMIN_CLIENT_ID: "${SFCC_ADMIN_CLIENT_ID}"
+  SFCC_ADMIN_CLIENT_SECRET: "${SFCC_ADMIN_CLIENT_SECRET}"
+  SFCC_SITE_ID: "${SFCC_SITE_ID}"
 
 # Health checks
 readiness_check:

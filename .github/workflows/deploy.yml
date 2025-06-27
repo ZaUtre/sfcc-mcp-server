@@ -58,11 +58,12 @@ jobs:
     
     - name: Deploy to App Engine
       run: |
+        envsubst < app.yaml > app.yaml.tmp && mv app.yaml.tmp app.yaml
         gcloud app deploy app.yaml \
           --version=${{ steps.version.outputs.clean_version }} \
           --promote \
           --stop-previous-version \
-          --quiet
+          --quiet \
           --project=${{ secrets.GCP_PROJECT_ID }}
       env:
         CLOUDSDK_CORE_PROJECT: ${{ secrets.GCP_PROJECT_ID }}
