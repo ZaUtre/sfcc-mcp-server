@@ -102,7 +102,37 @@ export class SFCCApiClient {
       const response = await fetch(url, requestConfig);
       
       if (!response.ok) {
-        throw new Error(`SFCC API request failed: ${response.status} ${response.statusText}`);
+        let errorMessage = `SFCC API request failed: ${response.status} ${response.statusText}`;
+        let errorDetails = '';
+        
+        try {
+          const errorBody = await response.text();
+          errorDetails = errorBody;
+        } catch (e) {
+          // Ignore errors reading response body
+        }
+        
+        // Provide specific guidance for common errors
+        if (response.status === 403) {
+          errorMessage += ' (Permission Denied)';
+          if (errorDetails.includes('insufficient_scope')) {
+            errorMessage += ' - The API client may not have the required permissions/scopes for this endpoint.';
+          } else {
+            errorMessage += ' - Check that your API client has the required permissions for this SFCC resource.';
+          }
+        } else if (response.status === 404) {
+          errorMessage += ' (Not Found)';
+          errorMessage += ' - The requested resource does not exist. Check the provided IDs and ensure the resource exists in your SFCC instance.';
+        } else if (response.status === 401) {
+          errorMessage += ' (Unauthorized)';
+          errorMessage += ' - Authentication failed. Check your API credentials.';
+        }
+        
+        if (errorDetails) {
+          errorMessage += `\nResponse details: ${errorDetails}`;
+        }
+        
+        throw new Error(errorMessage);
       }
       
       Logger.info(requestId, `SFCC API request to ${endpoint.path} completed successfully${sessionId ? ` (session: ${sessionId})` : ''}`);
