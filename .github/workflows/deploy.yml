@@ -62,6 +62,7 @@ jobs:
           --promote \
           --stop-previous-version \
           --quiet
+          --project=${{ secrets.GCP_PROJECT_ID }}
       env:
         CLOUDSDK_CORE_PROJECT: ${{ secrets.GCP_PROJECT_ID }}
         SFCC_API_BASE: ${{ secrets.SFCC_API_BASE }}
