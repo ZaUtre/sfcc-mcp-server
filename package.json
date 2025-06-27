@@ -5,16 +5,21 @@
   },
   "bin": {
     "sfcc-mcp": "./build/index.js"
-  },  "scripts": {
-    "false_build": "tsc && cp src/endpoints.json build/",
+  },
+  "scripts": {
+    "build": "tsc && cp src/endpoints.json build/",
     "start": "node build/index.js --remote",
     "start:stdio": "node build/index.js",
     "dev:stdio": "npm run build && npm run start:stdio",
-    "dev:remote": "npm run build && npm start"
+    "dev:remote": "npm run build && npm start",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage"
   },
   "files": [
     "build"
-  ],  "dependencies": {
+  ],
+  "dependencies": {
     "@modelcontextprotocol/sdk": "^1.7.0",
     "axios": "^1.8.4",
     "commerce-sdk": "^4.1.0",
@@ -27,12 +32,16 @@
     "typescript": "^5.8.2",
     "uuid": "^11.0.3",
     "zod": "^3.24.2"
-  },  "devDependencies": {
+  },
+  "devDependencies": {
     "@types/cors": "^2.8.17",
     "@types/express": "^5.0.0",
-    "@types/node": "^22.13.14",
+    "@types/jest": "^30.0.0",
+    "@types/node": "^22.15.33",
     "@types/uuid": "^10.0.0",
+    "jest": "^30.0.3",
     "openapi-typescript-codegen": "^0.29.0",
-    "swagger-typescript-api": "^13.0.24"
+    "swagger-typescript-api": "^13.0.24",
+    "ts-jest": "^29.4.0"
   }
 }
