@@ -15,7 +15,7 @@
       "sourceMap": false,
       "removeComments": false,
       "preserveConstEnums": true,
-      "types": ["node"]
+      "types": ["node", "jest"]
     },
     "include": ["src/**/*"],
     "exclude": ["node_modules", "build", "**/*.test.ts", "**/*.spec.ts"]

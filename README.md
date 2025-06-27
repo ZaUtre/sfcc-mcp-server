@@ -299,6 +299,35 @@ export async function handler_example(endpoint, params) {
 }
 ```
 
+## Testing
+
+The SFCC MCP Server includes comprehensive tests to ensure reliability and facilitate automated CI/CD processes.
+
+### Running Tests
+
+```bash
+# Run all tests
+npm test
+
+# Run tests in watch mode for development
+npm run test:watch
+
+# Run tests with coverage report
+npm run test:coverage
+```
+
+### Test Coverage
+
+The test suite covers:
+
+- **Tool Utilities** (`tests/tool-utils.test.ts`): Tool name generation and schema building
+- **Configuration Management** (`tests/config-simple.test.ts`): Environment configuration and session handling  
+- **Integration Tests** (`tests/integration.test.ts`): MCP server instantiation and tool registration
+
+### Test Framework
+
+The project uses **Jest** with TypeScript support for testing. Tests are located in the `tests/` directory and follow the naming convention `*.test.ts`.
+
 ## License
 
 MIT
