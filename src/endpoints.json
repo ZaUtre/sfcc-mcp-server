@@ -64,7 +64,8 @@
                     "match_all_query": {}
                 }
             },
-            "params": []
+            "params": [],
+            "toolName": "catalog_search"
         },
         {
             "path": "/category_search",
@@ -82,7 +83,8 @@
                     "type": "string",
                     "required": false
                 }
-            ]
+            ],
+            "toolName": "category_search"
         },
         {
             "path": "/sites/{site_id}/campaign_search",
@@ -100,7 +102,8 @@
                     "type": "string",
                     "required": true
                 }
-            ]
+            ],
+            "toolName": "sites_by_site_id_campaign_search"
         },
         {
             "path": "/sites/{site_id}/coupon_search",
@@ -118,7 +121,8 @@
                     "type": "string",
                     "required": true
                 }
-            ]
+            ],
+            "toolName": "sites_by_site_id_coupon_search"
         },
         {
             "path": "/sites/{site_id}/promotion_search",
@@ -136,7 +140,8 @@
                     "type": "string",
                     "required": true
                 }
-            ]
+            ],
+            "toolName": "sites_by_site_id_promotion_search"
         },
         {
             "path": "/custom_objects/{object_type}",
@@ -154,7 +159,8 @@
                     "type": "string",
                     "required": true
                 }
-            ]
+            ],
+            "toolName": "custom_obj_by_type"
         },
         {
             "path": "/catalogs",
@@ -166,7 +172,8 @@
                     "type": "string",
                     "required": false
                 }
-            ]
+            ],
+            "toolName": "catalogs"
         },
         {
             "path": "/catalogs/{catalog_id}",
@@ -184,7 +191,8 @@
                     "type": "string",
                     "required": false
                 }
-            ]
+            ],
+            "toolName": "catalog_by_id"
         },
         {
             "path": "/catalogs/{catalog_id}/categories",
@@ -208,7 +216,8 @@
                     "type": "string",
                     "required": false
                 }
-            ]
+            ],
+            "toolName": "cat_categories"
         },
         {
             "path": "/catalogs/{catalog_id}/categories/{category_id}",
@@ -238,7 +247,8 @@
                     "type": "string",
                     "required": false
                 }
-            ]
+            ],
+            "toolName": "cat_category_by_id"
         },
         {
             "path": "/catalogs/{catalog_id}/shared_product_options",
@@ -255,7 +265,8 @@
                     "description": "The locale context.",
                     "type": "string"
                 }
-            ]
+            ],
+            "toolName": "cat_shared_prod_opts"
         },
         {
             "path": "/catalogs/{catalog_id}/shared_product_options/{id}",
@@ -278,7 +289,8 @@
                     "description": "The locale context.",
                     "type": "string"
                 }
-            ]
+            ],
+            "toolName": "cat_shared_prod_opt_by_id"
         },
         {
             "path": "/catalogs/{catalog_id}/shared_variation_attributes",
@@ -295,7 +307,8 @@
                     "description": "The locale context.",
                     "type": "string"
                 }
-            ]
+            ],
+            "toolName": "cat_shared_var_attrs"
         },
         {
             "path": "/catalogs/{catalog_id}/shared_variation_attributes/{id}",
@@ -318,12 +331,14 @@
                     "description": "The locale context.",
                     "type": "string"
                 }
-            ]
+            ],
+            "toolName": "cat_shared_var_attr_by_id"
         },
         {
             "path": "/code_versions",
             "description": "Action to retrieve a list of all code versions.",
-            "params": []
+            "params": [],
+            "toolName": "code_versions"
         },
         {
             "path": "/code_versions/{code_version_id}",
@@ -335,7 +350,8 @@
                     "type": "string",
                     "required": true
                 }
-            ]
+            ],
+            "toolName": "code_version_by_id"
         },
         {
             "path": "/custom_object_definitions/{object_type}/attribute_definitions",
@@ -347,7 +363,8 @@
                     "type": "string",
                     "required": true
                 }
-            ]
+            ],
+            "toolName": "custom_obj_attr_defs"
         },
         {
             "path": "/custom_object_definitions/{object_type}/attribute_definitions/{id}",
@@ -365,7 +382,8 @@
                     "type": "string",
                     "required": true
                 }
-            ]
+            ],
+            "toolName": "custom_obj_attr_def_by_id"
         },
         {
             "path": "/custom_objects/{object_type}/{key}",
@@ -388,7 +406,8 @@
                     "description": "The locale context.",
                     "type": "string"
                 }
-            ]
+            ],
+            "toolName": "custom_obj_by_key"
         },
         {
             "path": "/customer_lists/{list_id}",
@@ -400,7 +419,8 @@
                     "type": "string",
                     "required": true
                 }
-            ]
+            ],
+            "toolName": "cust_list_by_id"
         },
         {
             "path": "/customer_lists/{list_id}/customers/{customer_no}",
@@ -418,7 +438,8 @@
                     "type": "string",
                     "required": true
                 }
-            ]
+            ],
+            "toolName": "cust_list_customer_by_no"
         },
         {
             "path": "/customer_lists/{list_id}/customers/{customer_no}/addresses",
@@ -436,7 +457,8 @@
                     "type": "string",
                     "required": true
                 }
-            ]
+            ],
+            "toolName": "cust_addresses"
         },
         {
             "path": "/global_preferences/preference_groups/{group_id}/{instance_type}",
@@ -454,12 +476,14 @@
                     "type": "string",
                     "required": true
                 }
-            ]
+            ],
+            "toolName": "global_prefs_pref_groups_by_grp_id_by_inst_type"
         },
         {
             "path": "/inventory_lists",
             "description": "Action to retrieve a list of all inventory lists.",
-            "params": []
+            "params": [],
+            "toolName": "inv_lists"
         },
         {
             "path": "/inventory_lists/{id}",
@@ -471,7 +495,8 @@
                     "type": "string",
                     "required": true
                 }
-            ]
+            ],
+            "toolName": "inv_lists_by_id"
         },
         {
             "path": "/inventory_lists/{inventory_list_id}/product_inventory_records/{product_id}",
@@ -489,7 +514,8 @@
                     "type": "string",
                     "required": true
                 }
-            ]
+            ],
+            "toolName": "inv_list_record_by_prod_id"
         },
         {
             "path": "/libraries/{library_id}/content/{content_id}",
@@ -512,12 +538,14 @@
                     "description": "The locale context.",
                     "type": "string"
                 }
-            ]
+            ],
+            "toolName": "library_content_by_id"
         },
         {
             "path": "/locale_info/locales",
             "description": "Action to retrieve information about available locales.",
-            "params": []
+            "params": [],
+            "toolName": "locale_info_locales"
         },
         {
             "path": "/products/{id}",
@@ -577,7 +605,8 @@
                     "description": "The locale context.",
                     "type": "string"
                 }
-            ]
+            ],
+            "toolName": "products_by_master_prod_id_var_groups"
         },
         {
             "path": "/products/{master_product_id}/variation_groups/{id}",
@@ -600,7 +629,8 @@
                     "description": "The locale context.",
                     "type": "string"
                 }
-            ]
+            ],
+            "toolName": "products_by_master_prod_id_var_groups_by_id"
         },
         {
             "path": "/products/{master_product_id}/variations",
@@ -617,7 +647,8 @@
                     "description": "The locale context.",
                     "type": "string"
                 }
-            ]
+            ],
+            "toolName": "products_by_master_prod_id_variations"
         },
         {
             "path": "/products/{master_product_id}/variations/{id}",
@@ -640,7 +671,8 @@
                     "description": "The locale context.",
                     "type": "string"
                 }
-            ]
+            ],
+            "toolName": "products_by_master_prod_id_variations_by_id"
         },
         {
             "path": "/products/{product_id}/product_options",
@@ -657,7 +689,8 @@
                     "description": "The locale context.",
                     "type": "string"
                 }
-            ]
+            ],
+            "toolName": "products_by_prod_id_prod_opts"
         },
         {
             "path": "/products/{product_id}/product_options/{id}",
@@ -680,7 +713,8 @@
                     "description": "The locale context.",
                     "type": "string"
                 }
-            ]
+            ],
+            "toolName": "products_by_prod_id_prod_opts_by_id"
         },
         {
             "path": "/products/{product_id}/product_options/{option_id}/values",
@@ -703,7 +737,8 @@
                     "description": "The locale context.",
                     "type": "string"
                 }
-            ]
+            ],
+            "toolName": "products_by_prod_id_prod_opts_by_opt_id_values"
         },
         {
             "path": "/products/{product_id}/product_options/{option_id}/values/{id}",
@@ -732,7 +767,8 @@
                     "description": "The locale context.",
                     "type": "string"
                 }
-            ]
+            ],
+            "toolName": "products_by_prod_id_prod_opts_by_opt_id_values_by_id"
         },
         {
             "path": "/products/{product_id}/variation_attributes",
@@ -749,7 +785,8 @@
                     "description": "The locale context.",
                     "type": "string"
                 }
-            ]
+            ],
+            "toolName": "products_by_prod_id_var_attrs"
         },
         {
             "path": "/products/{product_id}/variation_attributes/{attribute_id}/values",
@@ -772,7 +809,8 @@
                     "description": "The locale context.",
                     "type": "string"
                 }
-            ]
+            ],
+            "toolName": "products_by_prod_id_var_attrs_by_attribute_id_values"
         },
         {
             "path": "/products/{product_id}/variation_attributes/{attribute_id}/values/{id}",
@@ -801,7 +839,8 @@
                     "description": "The locale context.",
                     "type": "string"
                 }
-            ]
+            ],
+            "toolName": "products_by_prod_id_var_attrs_by_attribute_id_values_by_id"
         },
         {
             "path": "/products/{product_id}/variation_attributes/{id}",
@@ -824,7 +863,8 @@
                     "description": "The locale context.",
                     "type": "string"
                 }
-            ]
+            ],
+            "toolName": "products_by_prod_id_var_attrs_by_id"
         },
         {
             "path": "/sites",
@@ -842,7 +882,8 @@
                     "type": "string",
                     "required": true
                 }
-            ]
+            ],
+            "toolName": "sites_by_site_id"
         },
         {
             "path": "/sites/{site_id}/ai/recommender_names",
@@ -854,7 +895,8 @@
                     "type": "string",
                     "required": true
                 }
-            ]
+            ],
+            "toolName": "sites_by_site_id_ai_recommender_names"
         },
         {
             "path": "/sites/{site_id}/campaigns/{campaign_id}",
@@ -877,7 +919,8 @@
                     "description": "The locale context.",
                     "type": "string"
                 }
-            ]
+            ],
+            "toolName": "sites_by_site_id_campaigns_by_campaign_id"
         },
         {
             "path": "/sites/{site_id}/coupons",
@@ -889,7 +932,8 @@
                     "type": "string",
                     "required": true
                 }
-            ]
+            ],
+            "toolName": "sites_by_site_id_coupons"
         },
         {
             "path": "/sites/{site_id}/coupons/{coupon_id}",
@@ -907,7 +951,8 @@
                     "type": "string",
                     "required": true
                 }
-            ]
+            ],
+            "toolName": "sites_by_site_id_coupons_by_coupon_id"
         },
         {
             "path": "/sites/{site_id}/coupons/{coupon_id}/campaigns",
@@ -925,7 +970,8 @@
                     "type": "string",
                     "required": true
                 }
-            ]
+            ],
+            "toolName": "sites_by_site_id_coupons_by_coupon_id_campaigns"
         },
         {
             "path": "/sites/{site_id}/coupons/{coupon_id}/campaigns/{campaign_id}/promotions",
@@ -954,7 +1000,8 @@
                     "description": "The locale context.",
                     "type": "string"
                 }
-            ]
+            ],
+            "toolName": "sites_by_site_id_coupons_by_coupon_id_campaigns_by_campaign_id_promotions"
         },
         {
             "path": "/sites/{site_id}/coupons/{coupon_id}/codes",
@@ -972,7 +1019,8 @@
                     "type": "string",
                     "required": true
                 }
-            ]
+            ],
+            "toolName": "sites_by_site_id_coupons_by_coupon_id_codes"
         },
         {
             "path": "/sites/{site_id}/coupons/{coupon_id}/promotions",
@@ -995,7 +1043,8 @@
                     "description": "The locale context.",
                     "type": "string"
                 }
-            ]
+            ],
+            "toolName": "sites_by_site_id_coupons_by_coupon_id_promotions"
         },
         {
             "path": "/sites/{site_id}/custom_objects/{object_type}/{key}",
@@ -1024,7 +1073,8 @@
                     "description": "The locale context.",
                     "type": "string"
                 }
-            ]
+            ],
+            "toolName": "sites_by_site_id_custom_obj_by_type_by_key"
         },
         {
             "path": "/sites/{site_id}/customer_groups",
@@ -1036,7 +1086,8 @@
                     "type": "string",
                     "required": true
                 }
-            ]
+            ],
+            "toolName": "sites_by_site_id_cust_groups"
         },
         {
             "path": "/sites/{site_id}/customer_groups/{id}",
@@ -1054,7 +1105,8 @@
                     "type": "string",
                     "required": true
                 }
-            ]
+            ],
+            "toolName": "sites_by_site_id_cust_groups_by_id"
         },
         {
             "path": "/sites/{site_id}/customer_groups/{id}/members",
@@ -1072,7 +1124,8 @@
                     "type": "string",
                     "required": true
                 }
-            ]
+            ],
+            "toolName": "sites_by_site_id_cust_groups_by_id_members"
         },
         {
             "path": "/sites/{site_id}/customer_groups/{id}/members/{customer_no}",
@@ -1096,7 +1149,8 @@
                     "type": "string",
                     "required": true
                 }
-            ]
+            ],
+            "toolName": "sites_by_site_id_cust_groups_by_id_members_by_cust_no"
         },
         {
             "path": "/sites/{site_id}/gift_certificates",
@@ -1108,7 +1162,8 @@
                     "type": "string",
                     "required": true
                 }
-            ]
+            ],
+            "toolName": "sites_by_site_id_gift_certs"
         },
         {
             "path": "/sites/{site_id}/gift_certificates/{merchant_id}",
@@ -1126,7 +1181,8 @@
                     "type": "string",
                     "required": true
                 }
-            ]
+            ],
+            "toolName": "sites_by_site_id_gift_certs_by_merchant_id"
         },
         {
             "path": "/sites/{site_id}/locale_info/locales",
@@ -1138,7 +1194,8 @@
                     "type": "string",
                     "required": true
                 }
-            ]
+            ],
+            "toolName": "sites_by_site_id_locale_info_locales"
         },
         {
             "path": "/sites/{site_id}/promotions/{id}",
@@ -1161,7 +1218,8 @@
                     "description": "The locale context.",
                     "type": "string"
                 }
-            ]
+            ],
+            "toolName": "sites_by_site_id_promotions_by_id"
         },
         {
             "path": "/sites/{site_id}/site_preferences/preference_groups/{group_id}/{instance_type}",
@@ -1190,7 +1248,8 @@
                     "description": "The locale context.",
                     "type": "string"
                 }
-            ]
+            ],
+            "toolName": "sites_by_site_id_site_prefs_pref_groups_by_grp_id_by_inst_type"
         },
         {
             "path": "/sites/{site_id}/slots",
@@ -1202,7 +1261,8 @@
                     "type": "string",
                     "required": true
                 }
-            ]
+            ],
+            "toolName": "sites_by_site_id_slots"
         },
         {
             "path": "/sites/{site_id}/stores",
@@ -1234,7 +1294,8 @@
                     "description": "Unit for radius (e.g., km, mi).",
                     "type": "string"
                 }
-            ]
+            ],
+            "toolName": "sites_by_site_id_stores"
         },
         {
             "path": "/sites/{site_id}/stores/{id}",
@@ -1252,7 +1313,8 @@
                     "type": "string",
                     "required": true
                 }
-            ]
+            ],
+            "toolName": "sites_by_site_id_stores_by_id"
         }
     ]
 }
