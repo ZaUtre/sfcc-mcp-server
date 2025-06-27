@@ -84,3 +84,17 @@ jspm_packages/
 
 # Stores VSCode versions used for testing VSCode extensions
 .vscode-test
+
+# Deployment files
+github-sa-key.json
+key.json
+*.key
+
+# Test files
+tests/
+*.test.ts
+*.test.js
+jest.config.*
+
+# Scripts directory (deployment scripts not needed in production)
+scripts/

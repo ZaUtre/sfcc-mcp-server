@@ -1,0 +1,74 @@
+name: Deploy to Google App Engine
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to deploy (e.g., v1.0.0)'
+        required: true
+        type: string
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20.x'
+        cache: 'npm'
+    
+    - name: Install dependencies
+      run: npm ci
+    
+    - name: Build project
+      run: npm run build
+    
+    - name: Run tests
+      run: npm test
+    
+    - name: Setup Google Cloud SDK
+      uses: google-github-actions/setup-gcloud@v2
+      with:
+        project_id: ${{ secrets.GCP_PROJECT_ID }}
+        service_account_key: ${{ secrets.GCP_SA_KEY }}
+        export_default_credentials: true
+    
+    - name: Extract version from tag
+      id: version
+      run: |
+        if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+          VERSION="${{ github.event.inputs.version }}"
+        else
+          VERSION=${GITHUB_REF#refs/tags/}
+        fi
+        # Clean version for App Engine (remove 'v' prefix, replace dots and special chars with hyphens)
+        CLEAN_VERSION=$(echo $VERSION | sed 's/^v//' | sed 's/[^a-zA-Z0-9]/-/g' | tr '[:upper:]' '[:lower:]')
+        echo "version=$VERSION" >> $GITHUB_OUTPUT
+        echo "clean_version=$CLEAN_VERSION" >> $GITHUB_OUTPUT
+        echo "Deploying version: $VERSION (cleaned: $CLEAN_VERSION)"
+    
+    - name: Deploy to App Engine
+      run: |
+        gcloud app deploy app.yaml \
+          --version=${{ steps.version.outputs.clean_version }} \
+          --promote \
+          --stop-previous-version \
+          --quiet
+      env:
+        CLOUDSDK_CORE_PROJECT: ${{ secrets.GCP_PROJECT_ID }}
+    
+    - name: Update traffic allocation
+      run: |
+        gcloud app services set-traffic default \
+          --splits=${{ steps.version.outputs.clean_version }}=100 \
+          --quiet
+      env:
+        CLOUDSDK_CORE_PROJECT: ${{ secrets.GCP_PROJECT_ID }}

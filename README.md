@@ -12,6 +12,8 @@ A Model Context Protocol (MCP) server for interacting with Salesforce Commerce C
 - **Remote mode**: HTTP-based server with OAuth authentication
 - **Per-session configuration**: Each session can use different SFCC credentials and API endpoints
 - **Multi-tenant support**: Multiple clients can connect to different SFCC instances simultaneously
+- **Automated deployment**: GitHub Actions integration for Google App Engine deployment
+- **Version management**: Automated versioning and deployment workflows
 
 ## Installation
 
@@ -327,6 +329,41 @@ The test suite covers:
 ### Test Framework
 
 The project uses **Jest** with TypeScript support for testing. Tests are located in the `tests/` directory and follow the naming convention `*.test.ts`.
+
+## Deployment
+
+The SFCC MCP Server supports automated deployment to Google App Engine.
+
+### Quick Start
+
+1. **Set up Google Cloud:**
+   ```bash
+   npm run setup:gcp
+   ```
+
+2. **Deploy with versioning:**
+   ```bash
+   npm run version:create
+   ```
+
+3. **Manual deployment:**
+   ```bash
+   npm run version:deploy
+   ```
+
+### Documentation
+
+- **[DEPLOYMENT.md](DEPLOYMENT.md)**: Complete deployment setup guide
+- **[REMOTE.md](REMOTE.md)**: Remote server configuration and usage
+
+### Available Commands
+
+```bash
+npm run setup:gcp          # Interactive Google Cloud setup
+npm run version:create     # Create version and auto-deploy
+npm run version:deploy     # Manual deployment with version input
+npm run deploy             # Direct deployment to App Engine
+```
 
 ## License
 
