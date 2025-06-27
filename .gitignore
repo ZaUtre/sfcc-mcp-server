@@ -34,3 +34,9 @@ coverage/
 .DS_Store
 Thumbs.db
 build
+
+# Deployment files
+github-sa-key.json
+key.json
+*.key
+deploy*.log

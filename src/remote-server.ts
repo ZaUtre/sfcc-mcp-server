@@ -1,6 +1,9 @@
 import express from 'express';
 import cors from 'cors';
 import fetch from 'node-fetch';
+import { readFileSync } from 'fs';
+import { dirname, join } from 'path';
+import { fileURLToPath } from 'url';
 import { AsyncLocalStorage } from 'async_hooks';
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
@@ -12,6 +15,19 @@ import { EndpointLoader } from './endpoint-loader.js';
 import { HandlerRegistry } from './handler-registry.js';
 import { ToolNameGenerator, ToolSchemaBuilder } from './tool-utils.js';
 import { Endpoint } from './types.js';
+
+// Get version from package.json
+function getVersion(): string {
+  try {
+    const __filename = fileURLToPath(import.meta.url);
+    const __dirname = dirname(__filename);
+    const packageJsonPath = join(__dirname, '../package.json');
+    const packageJson = JSON.parse(readFileSync(packageJsonPath, 'utf8'));
+    return packageJson.version || '1.0.0';
+  } catch (error) {
+    return '1.0.0';
+  }
+}
 
 // Express app setup
 const app = express();
@@ -806,7 +822,7 @@ async function createAndConnectTransport(sessionId: string, mcpServer: McpServer
 export function createMCPServer(): McpServer {
   const server = new McpServer({
     name: "sfcc-services-remote",
-    version: "1.0.0",
+    version: getVersion(),
     instructions: "SFCC MCP Server providing Commerce Cloud services via remote transport"
   });
 
@@ -989,7 +1005,7 @@ app.get('/health', (req, res) => {
   res.json({ 
     status: 'ok', 
     service: 'sfcc-services',
-    version: '1.0.0',
+    version: getVersion(),
     timestamp: new Date().toISOString() 
   });
 });

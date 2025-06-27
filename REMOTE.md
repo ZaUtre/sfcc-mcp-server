@@ -152,6 +152,80 @@ curl -X POST http://localhost:3000/mcp \
 
 The remote server can be deployed to any platform that supports Node.js:
 
+### Google App Engine (Automated)
+
+This project includes automated deployment to Google App Engine using GitHub Actions.
+
+#### Setting up Automated Deployment
+
+1. **Configure Google Cloud Project:**
+   ```bash
+   # Set your project ID
+   gcloud config set project YOUR_PROJECT_ID
+   
+   # Enable App Engine API
+   gcloud services enable appengine.googleapis.com
+   
+   # Create App Engine application (if not exists)
+   gcloud app create --region=us-central
+   ```
+
+2. **Create Service Account for GitHub Actions:**
+   ```bash
+   # Create service account
+   gcloud iam service-accounts create github-deployer \
+     --description="Service account for GitHub Actions deployment" \
+     --display-name="GitHub Deployer"
+   
+   # Grant necessary permissions
+   gcloud projects add-iam-policy-binding YOUR_PROJECT_ID \
+     --member="serviceAccount:github-deployer@YOUR_PROJECT_ID.iam.gserviceaccount.com" \
+     --role="roles/appengine.deployer"
+   
+   gcloud projects add-iam-policy-binding YOUR_PROJECT_ID \
+     --member="serviceAccount:github-deployer@YOUR_PROJECT_ID.iam.gserviceaccount.com" \
+     --role="roles/appengine.serviceAdmin"
+   
+   gcloud projects add-iam-policy-binding YOUR_PROJECT_ID \
+     --member="serviceAccount:github-deployer@YOUR_PROJECT_ID.iam.gserviceaccount.com" \
+     --role="roles/storage.admin"
+   
+   # Create and download key
+   gcloud iam service-accounts keys create key.json \
+     --iam-account=github-deployer@YOUR_PROJECT_ID.iam.gserviceaccount.com
+   ```
+
+3. **Configure GitHub Secrets:**
+   In your GitHub repository, go to Settings > Secrets and variables > Actions, and add:
+   - `GCP_PROJECT_ID`: Your Google Cloud Project ID
+   - `GCP_SA_KEY`: Contents of the `key.json` file (base64 encoded)
+
+4. **Deploy with Version Tags:**
+   ```bash
+   # Create and push a version tag to trigger automatic deployment
+   npm run version:create
+   
+   # Or manually create a tag
+   git tag v1.0.0
+   git push origin v1.0.0
+   ```
+
+5. **Manual Deployment Trigger:**
+   You can also trigger deployment manually from the GitHub Actions tab using the "Deploy to Google App Engine" workflow.
+
+#### Version Management
+
+```bash
+# Interactive version creation (recommended)
+npm run version:create
+
+# Manual deployment without creating a tag
+npm run version:deploy
+
+# Direct deployment to App Engine
+npm run deploy
+```
+
 ### Cloud Run (Google Cloud)
 ```bash
 gcloud run deploy sfcc-mcp-server --source . --platform managed --region us-central1 --allow-unauthenticated
@@ -173,7 +247,7 @@ Set these environment variables in your deployment:
 
 ```bash
 MCP_MODE=remote
-PORT=3000
+PORT=8080  # App Engine uses 8080 by default
 SFCC_ADMIN_CLIENT_ID=your_client_id
 SFCC_ADMIN_CLIENT_SECRET=your_client_secret  
 SFCC_API_BASE=https://hostname.commercecloud.salesforce.com

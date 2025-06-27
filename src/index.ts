@@ -1,5 +1,8 @@
 #!/usr/bin/env node
 
+import { readFileSync } from 'fs';
+import { dirname, join } from 'path';
+import { fileURLToPath } from 'url';
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { configManager } from './config.js';
@@ -9,6 +12,19 @@ import { HandlerRegistry } from './handler-registry.js';
 import { ToolNameGenerator, ToolSchemaBuilder } from './tool-utils.js';
 import { Endpoint } from './types.js';
 import { startRemoteServer } from './remote-server.js';
+
+// Get version from package.json
+function getVersion(): string {
+  try {
+    const __filename = fileURLToPath(import.meta.url);
+    const __dirname = dirname(__filename);
+    const packageJsonPath = join(__dirname, '../package.json');
+    const packageJson = JSON.parse(readFileSync(packageJsonPath, 'utf8'));
+    return packageJson.version || '1.0.0';
+  } catch (error) {
+    return '1.0.0';
+  }
+}
 
 // Check command line arguments
 const args = process.argv.slice(2);
@@ -26,7 +42,7 @@ function startStdioServer() {
   // Create server instance
   const server = new McpServer({
     name: "sfcc-services",
-    version: "1.0.0",
+    version: getVersion(),
   });
 
   // Initialize services

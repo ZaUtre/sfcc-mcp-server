@@ -3,15 +3,20 @@ runtime: nodejs20
 automatic_scaling:
   min_instances: 0
   max_instances: 10
+  target_cpu_utilization: 0.6
+  target_throughput_utilization: 0.6
 
 env_variables:
   NODE_ENV: production
+  MCP_MODE: remote
+  PORT: 8080
   # Add your SFCC configuration here:
   # SFCC_API_BASE: "https://your-sfcc-instance.demandware.net"
   # SFCC_ADMIN_CLIENT_ID: your-client-id
   # SFCC_ADMIN_CLIENT_SECRET: your-client-secret
   # SFCC_SITE_ID: your-site-id
 
+# Health checks
 readiness_check:
   path: "/health"
   check_interval_sec: 5
@@ -26,7 +31,22 @@ liveness_check:
   failure_threshold: 4
   success_threshold: 2
 
+# Resource allocation
 resources:
   cpu: 1
   memory_gb: 0.5
   disk_size_gb: 10
+
+# Network settings
+network:
+  session_affinity: false
+
+# Handlers for static files and routing
+handlers:
+- url: /health
+  script: auto
+  secure: optional
+
+- url: /.*
+  script: auto
+  secure: optional
