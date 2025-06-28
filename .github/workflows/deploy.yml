@@ -61,12 +61,11 @@ jobs:
     
     - name: Deploy to App Engine
       run: |
-        gcloud app deploy app.yaml \
-          --version=${{ steps.version.outputs.clean_version }} \
-          --promote \
-          --stop-previous-version \
-          --quiet \
-          --project=${{ secrets.GCP_PROJECT_ID }}
+        gcloud app deploy app.yaml 
+          --version=${{ steps.version.outputs.clean_version }} 
+          --promote 
+          --stop-previous-version 
+          --quiet
       env:
         CLOUDSDK_CORE_PROJECT: ${{ vars.GCP_PROJECT_ID }}
         SFCC_API_BASE: ${{ vars.SFCC_API_BASE }}
