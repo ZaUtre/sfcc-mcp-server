@@ -38,7 +38,7 @@ jobs:
     - name: Setup Google Cloud SDK
       uses: google-github-actions/setup-gcloud@v2
       with:
-        project_id: ${{ secrets.GCP_PROJECT_ID }}
+        project_id: ${{ vars.GCP_PROJECT_ID }}
         service_account_key: ${{ secrets.GCP_SA_KEY }}
         export_default_credentials: true
     
@@ -58,7 +58,6 @@ jobs:
     
     - name: Deploy to App Engine
       run: |
-        envsubst < app.yaml > app.yaml.tmp && mv app.yaml.tmp app.yaml
         gcloud app deploy app.yaml \
           --version=${{ steps.version.outputs.clean_version }} \
           --promote \
@@ -66,11 +65,11 @@ jobs:
           --quiet \
           --project=${{ secrets.GCP_PROJECT_ID }}
       env:
-        CLOUDSDK_CORE_PROJECT: ${{ secrets.GCP_PROJECT_ID }}
-        SFCC_API_BASE: ${{ secrets.SFCC_API_BASE }}
-        SFCC_ADMIN_CLIENT_ID: ${{ secrets.SFCC_ADMIN_CLIENT_ID }}
+        CLOUDSDK_CORE_PROJECT: ${{ vars.GCP_PROJECT_ID }}
+        SFCC_API_BASE: ${{ vars.SFCC_API_BASE }}
+        SFCC_ADMIN_CLIENT_ID: ${{ vars.SFCC_ADMIN_CLIENT_ID }}
         SFCC_ADMIN_CLIENT_SECRET: ${{ secrets.SFCC_ADMIN_CLIENT_SECRET }}
-        SFCC_SITE_ID: ${{ secrets.SFCC_SITE_ID }}
+        SFCC_SITE_ID: ${{ vars.SFCC_SITE_ID }}
     - name: Update traffic allocation
       run: |
         gcloud app services set-traffic default \
