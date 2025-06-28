@@ -72,10 +72,3 @@ jobs:
         SFCC_ADMIN_CLIENT_ID: ${{ vars.SFCC_ADMIN_CLIENT_ID }}
         SFCC_ADMIN_CLIENT_SECRET: ${{ secrets.SFCC_ADMIN_CLIENT_SECRET }}
         SFCC_SITE_ID: ${{ vars.SFCC_SITE_ID }}
-    - name: Update traffic allocation
-      run: |
-        gcloud app services set-traffic default \
-          --splits=${{ steps.version.outputs.clean_version }}=100 \
-          --quiet
-      env:
-        CLOUDSDK_CORE_PROJECT: ${{ secrets.GCP_PROJECT_ID }}
