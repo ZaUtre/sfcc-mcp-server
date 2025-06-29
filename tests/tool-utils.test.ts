@@ -65,8 +65,11 @@ describe('ToolSchemaBuilder', () => {
     it('should build schema for empty parameters', () => {
       const params: EndpointParam[] = [];
       const result = ToolSchemaBuilder.buildSchema(params);
-      
-      expect(result).toEqual({});
+      // The result should have a 'query' property that is a Zod schema
+      expect(result).toHaveProperty('query');
+      // The query schema should accept undefined and empty object
+      expect(result.query.safeParse(undefined).success).toBe(true);
+      expect(result.query.safeParse({}).success).toBe(true);
     });
 
     it('should handle required string parameters', () => {

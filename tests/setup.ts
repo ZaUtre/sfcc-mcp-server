@@ -1,3 +1,5 @@
+import 'dotenv/config';
+
 // Jest setup file for global test configuration
 // This file is loaded before any tests are run
 
@@ -11,3 +13,5 @@ global.console = {
   warn: jest.fn(),
   error: jest.fn(),
 };
+
+jest.mock('node-fetch', () => jest.fn());

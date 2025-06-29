@@ -45,10 +45,15 @@ export class ToolNameGenerator {
 export class ToolSchemaBuilder {
   public static buildSchema(params: EndpointParam[]): Record<string, any> {
     const schema: Record<string, any> = {};
-    
+    const bodySchema: Record<string, any> = {};
+
     params.forEach((param: EndpointParam) => {
-      if (param.type === 'object') {
-        schema[param.name] = param.required 
+      if (param.name === 'q') {
+        bodySchema['text_query'] = param.required
+          ? z.string().describe(param.description)
+          : z.string().optional().describe(param.description);
+      } else if (param.type === 'object') {
+        schema[param.name] = param.required
           ? z.object({}).passthrough().describe(param.description)
           : z.object({}).passthrough().optional().describe(param.description);
       } else if (param.type === 'number' || param.type === 'integer') {
@@ -62,7 +67,15 @@ export class ToolSchemaBuilder {
           : z.string().optional().describe(param.description);
       }
     });
-    
+
+    if (Object.keys(bodySchema).length > 0) {
+      schema['query'] = z.object(bodySchema).passthrough().optional().describe('Query parameters for product search.');
+    } else {
+      schema['query'] = z.object({
+        match_all_query: z.object({}).optional()
+      }).optional().describe('Query parameters for product search.');
+    }
+
     return schema;
   }
 }
