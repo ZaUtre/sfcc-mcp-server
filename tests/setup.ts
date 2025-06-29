@@ -11,3 +11,5 @@ global.console = {
   warn: jest.fn(),
   error: jest.fn(),
 };
+
+jest.mock('node-fetch', () => jest.fn());
