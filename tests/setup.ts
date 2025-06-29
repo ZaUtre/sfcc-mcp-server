@@ -1,3 +1,5 @@
+import 'dotenv/config';
+
 // Jest setup file for global test configuration
 // This file is loaded before any tests are run
 
