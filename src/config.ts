@@ -1,4 +1,5 @@
 import { SFCCConfig } from './types.js';
+import 'dotenv/config';
 
 export class ConfigManager {
   private static instance: ConfigManager;
