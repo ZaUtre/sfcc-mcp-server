@@ -66,13 +66,9 @@ jobs:
     
     - name: Prepare app.yaml with environment variables
       run: |
-        sed -i 's|${SFCC_API_BASE}|"'"$SFCC_API_BASE"'"|g' app.yaml
-        sed -i 's|${SFCC_ADMIN_CLIENT_ID}|"'"$SFCC_ADMIN_CLIENT_ID"'"|g' app.yaml
-        sed -i 's|${SFCC_ADMIN_CLIENT_SECRET}|"'"$SFCC_ADMIN_CLIENT_SECRET"'"|g' app.yaml
-      env:
-        SFCC_API_BASE: ${{ vars.SFCC_API_BASE }}
-        SFCC_ADMIN_CLIENT_ID: ${{ vars.SFCC_ADMIN_CLIENT_ID }}
-        SFCC_ADMIN_CLIENT_SECRET: ${{ secrets.SFCC_ADMIN_CLIENT_SECRET }}
+        sed -i 's|${{ vars.SFCC_API_BASE }}|"'"$SFCC_API_BASE"'"|g' app.yaml
+        sed -i 's|${{ vars.SFCC_ADMIN_CLIENT_ID }}|"'"$SFCC_ADMIN_CLIENT_ID"'"|g' app.yaml
+        sed -i 's|${{ secrets.SFCC_ADMIN_CLIENT_SECRET }}|"'"$SFCC_ADMIN_CLIENT_SECRET"'"|g' app.yaml
 
     - name: Deploy to App Engine
       run: |
@@ -83,7 +79,3 @@ jobs:
           --quiet
       env:
         CLOUDSDK_CORE_PROJECT: ${{ vars.GCP_PROJECT_ID }}
-        SFCC_API_BASE: ${{ vars.SFCC_API_BASE }}
-        SFCC_ADMIN_CLIENT_ID: ${{ vars.SFCC_ADMIN_CLIENT_ID }}
-        SFCC_ADMIN_CLIENT_SECRET: ${{ secrets.SFCC_ADMIN_CLIENT_SECRET }}
-        SFCC_SITE_ID: ${{ vars.SFCC_SITE_ID }}
