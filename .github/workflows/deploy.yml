@@ -34,7 +34,12 @@ jobs:
     
     - name: Run tests
       run: npm test
-    
+      env:
+        SFCC_API_BASE: ${{ vars.SFCC_API_BASE }}
+        SFCC_ADMIN_CLIENT_ID: ${{ vars.SFCC_ADMIN_CLIENT_ID }}
+        SFCC_ADMIN_CLIENT_SECRET: ${{ secrets.SFCC_ADMIN_CLIENT_SECRET }}
+        SFCC_SITE_ID: ${{ vars.SFCC_SITE_ID }}
+
     - name: Authenticate to Google Cloud
       uses: 'google-github-actions/auth@v2'
       with:

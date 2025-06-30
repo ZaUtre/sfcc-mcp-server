@@ -9,6 +9,7 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    environment: production
 
     strategy:
       matrix:
@@ -31,10 +32,20 @@ jobs:
     
     - name: Run tests
       run: npm test
-    
+      env:
+          SFCC_API_BASE: ${{ vars.SFCC_API_BASE }}
+          SFCC_ADMIN_CLIENT_ID: ${{ vars.SFCC_ADMIN_CLIENT_ID }}
+          SFCC_ADMIN_CLIENT_SECRET: ${{ secrets.SFCC_ADMIN_CLIENT_SECRET }}
+          SFCC_SITE_ID: ${{ vars.SFCC_SITE_ID }}
+
     - name: Run tests with coverage
       run: npm run test:coverage
-    
+      env:
+          SFCC_API_BASE: ${{ vars.SFCC_API_BASE }}
+          SFCC_ADMIN_CLIENT_ID: ${{ vars.SFCC_ADMIN_CLIENT_ID }}
+          SFCC_ADMIN_CLIENT_SECRET: ${{ secrets.SFCC_ADMIN_CLIENT_SECRET }}
+          SFCC_SITE_ID: ${{ vars.SFCC_SITE_ID }}
+
     - name: Upload coverage reports
       uses: codecov/codecov-action@v3
       if: matrix.node-version == '20.x'
