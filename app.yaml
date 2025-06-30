@@ -13,7 +13,6 @@ env_variables:
   SFCC_API_BASE: "${SFCC_API_BASE}"
   SFCC_ADMIN_CLIENT_ID: "${SFCC_ADMIN_CLIENT_ID}"
   SFCC_ADMIN_CLIENT_SECRET: "${SFCC_ADMIN_CLIENT_SECRET}"
-  SFCC_SITE_ID: "${SFCC_SITE_ID}"
 
 # Health checks
 readiness_check:
