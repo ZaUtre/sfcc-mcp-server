@@ -10,6 +10,7 @@ import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/
 
 import { v4 as uuidv4 } from 'uuid';
 import { configManager } from './config.js';
+import { sessionPersistence } from './session-persistence.js';
 import { Logger } from './logger.js';
 import { EndpointLoader } from './endpoint-loader.js';
 import { HandlerRegistry } from './handler-registry.js';
@@ -56,6 +57,52 @@ const pendingTransports: Record<string, any> = {};
 // Store user credentials temporarily (in production, use a secure session store)
 const userCredentials: Record<string, { clientId: string; clientSecret: string; apiBase: string; sessionId: string; ocapiVersion?: string }> = {};
 const authCodes: Record<string, string> = {}; // Map auth codes to session IDs
+
+// Restore session data on startup
+function restoreSessionData(): void {
+  try {
+    const sessionData = sessionPersistence.loadSessionData();
+    if (sessionData) {
+      if (sessionData.userCredentials) {
+        Object.assign(userCredentials, sessionData.userCredentials);
+      }
+      if (sessionData.authCodes) {
+        Object.assign(authCodes, sessionData.authCodes);
+      }
+      console.log('Restored session data for', Object.keys(userCredentials).length, 'users');
+    }
+  } catch (error) {
+    console.warn('Failed to restore session data:', error);
+  }
+}
+
+// Persist session data
+function persistSessionData(): void {
+  try {
+    const existingData = sessionPersistence.loadSessionData() || {
+      sessionCredentials: {},
+      userCredentials: {},
+      authCodes: {},
+      timestamp: Date.now()
+    };
+    
+    sessionPersistence.saveSessionData({
+      ...existingData,
+      userCredentials,
+      authCodes
+    });
+  } catch (error) {
+    console.warn('Failed to persist session data:', error);
+  }
+}
+
+// Restore sessions on startup
+restoreSessionData();
+
+// Periodic session persistence (every 5 minutes)
+setInterval(() => {
+  persistSessionData();
+}, 5 * 60 * 1000);
 
 // Async local storage for session context
 const sessionContext = new AsyncLocalStorage<{ sessionId: string; credentials: { clientId: string; clientSecret: string; apiBase: string } }>();
@@ -219,10 +266,12 @@ app.post('/authorize-with-defaults', express.json(), async (req: express.Request
       };
       
       authCodes[authCode] = sessionId;
+      persistSessionData();
       
       // Clean up old auth codes
       setTimeout(() => {
         delete authCodes[authCode];
+        persistSessionData();
       }, 10 * 60 * 1000); // 10 minutes
       
       res.json({ success: true, authCode });
@@ -696,6 +745,7 @@ app.post('/token', express.json(), (req: express.Request, res: express.Response)
   
   // Clean up the auth code (one-time use)
   delete authCodes[code];
+  persistSessionData();
   
   res.json({
     access_token: accessToken,
@@ -756,10 +806,12 @@ app.post('/validate-credentials', express.json(), async (req: express.Request, r
       };
       
       authCodes[authCode] = sessionId;
+      persistSessionData();
       
       // Clean up old auth codes (optional: implement proper cleanup)
       setTimeout(() => {
         delete authCodes[authCode];
+        persistSessionData();
       }, 10 * 60 * 1000); // 10 minutes
       
       res.json({ success: true, authCode });
@@ -1025,12 +1077,14 @@ export function startRemoteServer() {
 
   // Handle process termination
   process.on('SIGINT', () => {
-    Logger.info(requestId, 'Received SIGINT. Shutting down gracefully...');
+    Logger.info(requestId, 'Received SIGINT. Saving sessions and shutting down gracefully...');
+    persistSessionData();
     process.exit(0);
   });
 
   process.on('SIGTERM', () => {
-    Logger.info(requestId, 'Received SIGTERM. Shutting down gracefully...');
+    Logger.info(requestId, 'Received SIGTERM. Saving sessions and shutting down gracefully...');
+    persistSessionData();
     process.exit(0);
   });
 }
