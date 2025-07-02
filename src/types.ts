@@ -42,4 +42,4 @@ export interface SearchQuery {
   select?: string;
 }
 
-export type CustomHandler = (endpoint: Endpoint, params: Record<string, any>) => Promise<any>;
+export type CustomHandler = (endpoint: Endpoint, params: Record<string, any>, sessionId?: string) => Promise<any>;
