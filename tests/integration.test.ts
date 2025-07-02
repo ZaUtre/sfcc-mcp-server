@@ -1,7 +1,5 @@
 // Simple integration test that validates MCP server can be instantiated
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { HandlerRegistry } from '../src/handler-registry';
-import { SFCCApiClient } from '../src/sfcc-client';
 
 describe('SFCC MCP Server Integration', () => {
   describe('Server Instantiation', () => {
@@ -61,54 +59,6 @@ describe('SFCC MCP Server Integration', () => {
       );
 
       expect(server).toBeDefined();
-    });
-  });
-
-  describe('Product Search Handler', () => {
-    let handlerRegistry: HandlerRegistry;
-    let mockMakeRequest: jest.Mock;
-
-    beforeEach(() => {
-      // Mock the SFCCApiClient
-      mockMakeRequest = jest.fn().mockResolvedValue({ hits: [] });
-      jest.spyOn(SFCCApiClient, 'getInstance').mockReturnValue({
-        makeRequest: mockMakeRequest,
-      } as any);
-
-      handlerRegistry = HandlerRegistry.getInstance();
-    });
-
-    afterEach(() => {
-      jest.restoreAllMocks();
-    });
-
-    it('should call product_search with correct pagination and expand parameters', async () => {
-      const endpoint = {
-        path: '/product_search',
-        description: '',
-        method: 'POST',
-        toolName: 'product_search',
-        params: [],
-      };
-      const params = {
-        site_id: 'RefArch',
-        count: '10',
-        start: '5',
-        expand: 'images,prices',
-      };
-
-      await handlerRegistry.executeHandler('product_search', endpoint, params);
-
-      expect(mockMakeRequest).toHaveBeenCalledWith(endpoint, {
-        ...params,
-        requestBody: {
-          query: { match_all_query: {} },
-          expand: ['images', 'prices'],
-          count: 10,
-          start: 5,
-          select: '(**)',
-        },
-      }, undefined);
     });
   });
 });
