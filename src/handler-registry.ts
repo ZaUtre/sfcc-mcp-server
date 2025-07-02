@@ -30,7 +30,7 @@ export class HandlerRegistry {
   public async executeHandler(toolName: string, endpoint: Endpoint, params: Record<string, any>, sessionId?: string): Promise<any> {
     const handler = this.handlers.get(toolName);
     if (handler) {
-      return await handler(endpoint, params);
+      return await handler(endpoint, params, sessionId);
     }
     
     // Fall back to default SFCC client with session support
@@ -43,7 +43,7 @@ export class HandlerRegistry {
   }
 
   private createProductSearchHandler(): CustomHandler {
-    return async (endpoint: Endpoint, params: Record<string, any>) => {
+    return async (endpoint: Endpoint, params: Record<string, any>, sessionId?: string) => {
       const requestId = configManager.getRequestId();
       
       try {
@@ -142,7 +142,7 @@ export class HandlerRegistry {
         params.requestBody = searchQuery;
         
         // Use the SFCC client to make the request
-        return await this.sfccClient.makeRequest(endpoint, params);
+        return await this.sfccClient.makeRequest(endpoint, params, sessionId);
       } catch (error) {
         Logger.error(requestId, 'Error in product search handler', error as Error);
         throw error;
