@@ -1,5 +1,5 @@
 import { SFCCConfig } from './types.js';
-import { sessionPersistence } from './session-persistence.js';
+import { SessionPersistence } from './session-persistence.js';
 import 'dotenv/config';
 
 export class ConfigManager {
@@ -64,7 +64,7 @@ export class ConfigManager {
 
   private restoreSessionCredentials(): void {
     try {
-      const sessionData = sessionPersistence.loadSessionData();
+      const sessionData = SessionPersistence.getInstance().loadSessionData();
       if (sessionData && sessionData.sessionCredentials) {
         this.sessionCredentials = sessionData.sessionCredentials;
       }
@@ -75,6 +75,7 @@ export class ConfigManager {
 
   private persistSessionCredentials(): void {
     try {
+      const sessionPersistence = SessionPersistence.getInstance();
       const existingData = sessionPersistence.loadSessionData() || {
         sessionCredentials: {},
         userCredentials: {},
