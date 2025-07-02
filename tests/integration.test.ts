@@ -108,7 +108,7 @@ describe('SFCC MCP Server Integration', () => {
           start: 5,
           select: '(**)',
         },
-      });
+      }, undefined);
     });
   });
 });
