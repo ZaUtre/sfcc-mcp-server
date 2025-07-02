@@ -1,4 +1,5 @@
 import { SFCCConfig } from './types.js';
+import { sessionPersistence } from './session-persistence.js';
 import 'dotenv/config';
 
 export class ConfigManager {
@@ -10,6 +11,7 @@ export class ConfigManager {
 
   private constructor() {
     this.config = this.loadConfig();
+    this.restoreSessionCredentials();
   }
 
   public static getInstance(): ConfigManager {
@@ -48,6 +50,7 @@ export class ConfigManager {
 
   public setSessionCredentials(sessionId: string, credentials: { clientId: string; clientSecret: string; apiBase: string; ocapiVersion?: string }) {
     this.sessionCredentials[sessionId] = credentials;
+    this.persistSessionCredentials();
   }
 
   public getSessionCredentials(sessionId: string) {
@@ -56,6 +59,36 @@ export class ConfigManager {
 
   public clearSessionCredentials(sessionId: string) {
     delete this.sessionCredentials[sessionId];
+    this.persistSessionCredentials();
+  }
+
+  private restoreSessionCredentials(): void {
+    try {
+      const sessionData = sessionPersistence.loadSessionData();
+      if (sessionData && sessionData.sessionCredentials) {
+        this.sessionCredentials = sessionData.sessionCredentials;
+      }
+    } catch (error) {
+      // Ignore errors during restoration - start with empty sessions
+    }
+  }
+
+  private persistSessionCredentials(): void {
+    try {
+      const existingData = sessionPersistence.loadSessionData() || {
+        sessionCredentials: {},
+        userCredentials: {},
+        authCodes: {},
+        timestamp: Date.now()
+      };
+      
+      sessionPersistence.saveSessionData({
+        ...existingData,
+        sessionCredentials: this.sessionCredentials
+      });
+    } catch (error) {
+      // Ignore persistence errors - continue operating normally
+    }
   }
 }
 
