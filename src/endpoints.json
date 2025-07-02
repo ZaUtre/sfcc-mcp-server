@@ -18,6 +18,30 @@
                     "required": true
                 },
                 {
+                    "name": "product_name",
+                    "description": "Search for products by name.",
+                    "type": "string",
+                    "required": false
+                },
+                {
+                    "name": "min_price",
+                    "description": "Minimum price for product search.",
+                    "type": "number",
+                    "required": false
+                },
+                {
+                    "name": "max_price",
+                    "description": "Maximum price for product search.",
+                    "type": "number",
+                    "required": false
+                },
+                {
+                    "name": "category_id",
+                    "description": "Filter products by category ID.",
+                    "type": "string",
+                    "required": false
+                },
+                {
                     "name": "expand",
                     "description": "Comma-separated list of resources to expand (e.g., availability, images, prices).",
                     "type": "string",

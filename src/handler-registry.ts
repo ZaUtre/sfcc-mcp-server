@@ -50,42 +50,74 @@ export class HandlerRegistry {
         Logger.info(requestId, `Custom handler for ${endpoint.path} called with params: ${JSON.stringify(params)}`);
         
         const searchQuery: SearchQuery = {};
-    
-        // Build query based on parameters
-        if (params.name) {
-          searchQuery.query = {
+        const mustQueries: any[] = [];
+
+        let hasOtherFilters = false;
+        let hasPriceFilter = params.min_price || params.max_price;
+
+        if (params.product_name) {
+          mustQueries.push({
             text_query: {
               fields: ["name"],
-              search_phrase: params.name
+              search_phrase: params.product_name
             }
-          };
-          Logger.info(requestId, `Created text search query for product name: ${params.name}`);
-        } else if (params.category_id) {
+          });
+          Logger.info(requestId, `Added text search query for product name: ${params.product_name}`);
+          hasOtherFilters = true;
+        }
+
+        if (params.category_id) {
+          mustQueries.push({
+            term_query: {
+              fields: ["primary_category_id"],
+              operator: "is",
+              values: [params.category_id]
+            }
+          });
+          Logger.info(requestId, `Added category filter for category_id: ${params.category_id}`);
+          hasOtherFilters = true;
+        }
+
+        // Handle price filter as top-level range_query if it's the only filter
+        if (hasPriceFilter && !hasOtherFilters) {
+          const rangeQuery: any = { field: "price" };
+          if (params.min_price) {
+            rangeQuery.from = parseFloat(params.min_price);
+          }
+          if (params.max_price) {
+            rangeQuery.to = parseFloat(params.max_price);
+          }
+          searchQuery.query = { range_query: rangeQuery };
+          Logger.info(requestId, `Added top-level price range query: min=${params.min_price || 'N/A'}, max=${params.max_price || 'N/A'}`);
+        } else if (mustQueries.length > 0 || hasPriceFilter) {
+          // If there are other filters, add price as a must query
+          if (hasPriceFilter) {
+            const rangeQuery: any = { field: "price" };
+            if (params.min_price) {
+              rangeQuery.from = parseFloat(params.min_price);
+            }
+            if (params.max_price) {
+              rangeQuery.to = parseFloat(params.max_price);
+            }
+            mustQueries.push({ range_query: rangeQuery });
+            Logger.info(requestId, `Added price range query to must: min=${params.min_price || 'N/A'}, max=${params.max_price || 'N/A'}`);
+          }
           searchQuery.query = {
-            filtered_query: {
-              query: { match_all_query: {} },
-              filter: {
-                category_id_filter: {
-                  value: params.category_id
-                }
-              }
+            bool_query: {
+              must: mustQueries
             }
           };
-          Logger.info(requestId, `Created category refinement query for category_id: ${params.category_id}`);
         } else {
           searchQuery.query = {
             match_all_query: {}
           };
-          Logger.info(requestId, 'No search criteria provided, using match_all query');
+          Logger.info(requestId, 'No specific search criteria provided, using match_all query');
         }
           // Handle expand parameter
         if (params.expand) {
           searchQuery.expand = params.expand.split(',').map((item: string) => item.trim());
           Logger.info(requestId, `Using custom expand fields: ${searchQuery.expand?.join(', ')}`);
-        } else {
-          searchQuery.expand = ["availability", "images", "prices"];
-          Logger.info(requestId, 'Using default expand fields');
-        }
+        } // else do not set expand at all
         
         // Handle inventory_ids parameter
         if (params.inventory_ids) {

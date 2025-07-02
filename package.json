@@ -1,6 +1,6 @@
 {
   "name": "sfcc-mcp-server",
-  "version": "1.0.2",
+  "version": "1.0.12",
   "type": "module",
   "engines": {
     "node": ">=18.0.0"
@@ -12,8 +12,8 @@
     "build": "tsc && cp src/endpoints.json build/",
     "start": "node build/index.js --remote",
     "start:stdio": "node build/index.js",
-    "dev:stdio": "npm run build && npm run start:stdio",
-    "dev:remote": "npm run build && npm start",
+    "dev:stdio": "tsx src/index.ts",
+    "dev:remote": "tsx src/index.ts -- --remote",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage"
@@ -44,6 +44,7 @@
     "jest": "^30.0.3",
     "openapi-typescript-codegen": "^0.29.0",
     "swagger-typescript-api": "^13.0.24",
-    "ts-jest": "^29.4.0"
+    "ts-jest": "^29.4.0",
+    "tsx": "^4.20.3"
   }
 }
