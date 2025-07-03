@@ -119,7 +119,38 @@
                     "match_all_query": {}
                 }
             },
-            "params": [],
+            "params": [
+                {
+                    "name": "catalog_name",
+                    "description": "Search for catalogs by name.",
+                    "type": "string",
+                    "required": false
+                },
+                {
+                    "name": "catalog_id",
+                    "description": "Search for catalogs by ID.",
+                    "type": "string",
+                    "required": false
+                },
+                {
+                    "name": "online_flag",
+                    "description": "Filter catalogs by online status (true/false).",
+                    "type": "boolean",
+                    "required": false
+                },
+                {
+                    "name": "count",
+                    "description": "The number of catalogs to return.",
+                    "type": "integer",
+                    "required": false
+                },
+                {
+                    "name": "start",
+                    "description": "The starting index for pagination.",
+                    "type": "integer",
+                    "required": false
+                }
+            ],
             "toolName": "catalog_search"
         },
         {
@@ -244,6 +275,42 @@
                     "description": "The ID of the site to search campaigns in.",
                     "type": "string",
                     "required": true
+                },
+                {
+                    "name": "campaign_name",
+                    "description": "Search for campaigns by name.",
+                    "type": "string",
+                    "required": false
+                },
+                {
+                    "name": "campaign_id",
+                    "description": "Search for campaigns by ID.",
+                    "type": "string",
+                    "required": false
+                },
+                {
+                    "name": "enabled",
+                    "description": "Filter campaigns by enabled status (true/false).",
+                    "type": "boolean",
+                    "required": false
+                },
+                {
+                    "name": "customer_groups",
+                    "description": "Comma-separated list of customer group IDs to filter campaigns.",
+                    "type": "string",
+                    "required": false
+                },
+                {
+                    "name": "count",
+                    "description": "The number of campaigns to return.",
+                    "type": "integer",
+                    "required": false
+                },
+                {
+                    "name": "start",
+                    "description": "The starting index for pagination.",
+                    "type": "integer",
+                    "required": false
                 }
             ],
             "toolName": "campaign_search"
@@ -288,6 +355,42 @@
                     "description": "The ID of the site to search promotions in.",
                     "type": "string",
                     "required": true
+                },
+                {
+                    "name": "promotion_name",
+                    "description": "Search for promotions by name.",
+                    "type": "string",
+                    "required": false
+                },
+                {
+                    "name": "promotion_id",
+                    "description": "Search for promotions by ID.",
+                    "type": "string",
+                    "required": false
+                },
+                {
+                    "name": "enabled",
+                    "description": "Filter promotions by enabled status (true/false).",
+                    "type": "boolean",
+                    "required": false
+                },
+                {
+                    "name": "promotion_class",
+                    "description": "Filter promotions by class (product, order, shipping).",
+                    "type": "string",
+                    "required": false
+                },
+                {
+                    "name": "count",
+                    "description": "The number of promotions to return.",
+                    "type": "integer",
+                    "required": false
+                },
+                {
+                    "name": "start",
+                    "description": "The starting index for pagination.",
+                    "type": "integer",
+                    "required": false
                 }
             ],
             "toolName": "promotion_search"
@@ -332,6 +435,42 @@
                     "description": "The ID of the site to search coupons in.",
                     "type": "string",
                     "required": true
+                },
+                {
+                    "name": "coupon_code",
+                    "description": "Search for coupons by code.",
+                    "type": "string",
+                    "required": false
+                },
+                {
+                    "name": "coupon_id",
+                    "description": "Search for coupons by ID.",
+                    "type": "string",
+                    "required": false
+                },
+                {
+                    "name": "enabled",
+                    "description": "Filter coupons by enabled status (true/false).",
+                    "type": "boolean",
+                    "required": false
+                },
+                {
+                    "name": "single_use",
+                    "description": "Filter coupons by single use flag (true/false).",
+                    "type": "boolean",
+                    "required": false
+                },
+                {
+                    "name": "count",
+                    "description": "The number of coupons to return.",
+                    "type": "integer",
+                    "required": false
+                },
+                {
+                    "name": "start",
+                    "description": "The starting index for pagination.",
+                    "type": "integer",
+                    "required": false
                 }
             ],
             "toolName": "coupon_search"
@@ -440,6 +579,30 @@
                     "description": "The ID of the custom object type to search.",
                     "type": "string",
                     "required": true
+                },
+                {
+                    "name": "key_pattern",
+                    "description": "Search for custom objects by key pattern (supports wildcards).",
+                    "type": "string",
+                    "required": false
+                },
+                {
+                    "name": "custom_field",
+                    "description": "Search for custom objects by custom field value (format: field_name:value).",
+                    "type": "string",
+                    "required": false
+                },
+                {
+                    "name": "count",
+                    "description": "The number of custom objects to return.",
+                    "type": "integer",
+                    "required": false
+                },
+                {
+                    "name": "start",
+                    "description": "The starting index for pagination.",
+                    "type": "integer",
+                    "required": false
                 }
             ],
             "toolName": "custom_objects_search"

@@ -4,7 +4,10 @@ module.exports = {
   roots: ['<rootDir>/tests'],
   testMatch: ['**/__tests__/**/*.test.ts', '**/?(*.)+(spec|test).ts'],
   transform: {
-    '^.+\.ts$': ['ts-jest', { useESM: true }],
+    '^.+\.ts$': ['ts-jest', { 
+      useESM: true,
+      tsconfig: 'tsconfig.test.json'
+    }],
   },
   transformIgnorePatterns: [
     '/node_modules/(?!node-fetch)/', // transform node-fetch
